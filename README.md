@@ -1,6 +1,7 @@
 # get-23andme-data
 
 Simple demo that reads PGP statistics and plots 23andMe values.
+Live at: https://lorenasandoval88.github.io/get-23andme-data/
 
 ## Run locally (Node proxy)
 
