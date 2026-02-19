@@ -7,6 +7,7 @@ const PGP_STATS_URL = "https://my.pgp-hms.org/public_genetic_data/statistics";
 app.use(express.static("."));
 
 app.get("/pgp-stats", async (req, res) => {
+    console.log("Received request for /pgp-stats");
     try {
         const upstream = await fetch(PGP_STATS_URL);
 

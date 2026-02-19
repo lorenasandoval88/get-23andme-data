@@ -6,9 +6,10 @@ async function loadStats() {
         const target = "https://my.pgp-hms.org/public_genetic_data/statistics";
         const candidates = [
             { name: "local-proxy", url: "/pgp-stats" },
-            { name: "powershell-proxy", url: "http://localhost:3001/pgp-stats" },
+            { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
             { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
-            { name: "corsproxy", url: `https://corsproxy.io/?${target}` }
+            { name: "corsproxy", url: `https://corsproxy.io/?${target}` },
+            { name: "github-pages-proxy", url: "https://lorenasandoval88.github.io/get-23andme-data/pgp-stats" }
         ];
 
         let html = null;
