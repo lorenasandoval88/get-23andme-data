@@ -2,10 +2,19 @@ async function loadStats() {
     const sourceStatusEl = document.getElementById("sourceStatus");
     if (sourceStatusEl) sourceStatusEl.textContent = "Source: checking...";
 
+
+    const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
+// If you added a token:
+// const WORKER_BASE = "https://YOUR-WORKER.workers.dev/?token=MYSECRET123&url=";
+
+
+
     try {
         const target = "https://my.pgp-hms.org/public_genetic_data/statistics";
         const candidates = [
-            { name: "local-proxy", url: "/pgp-stats" },
+             // ✅ your Cloudflare Worker (put near the top)
+            { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(target)}` },
+            { name: "local-proxy", url: "http://localhost:3000/pgp-stats" },
             // { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
             { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
             { name: "corsproxy", url: `https://corsproxy.io/?${target}` },
