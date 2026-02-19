@@ -6,7 +6,7 @@ async function loadStats() {
         const target = "https://my.pgp-hms.org/public_genetic_data/statistics";
         const candidates = [
             { name: "local-proxy", url: "/pgp-stats" },
-            { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
+            // { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
             { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
             { name: "corsproxy", url: `https://corsproxy.io/?${target}` },
             { name: "github-pages-proxy", url: "https://lorenasandoval88.github.io/get-23andme-data/pgp-stats" }
@@ -19,6 +19,7 @@ async function loadStats() {
         for (const candidate of candidates) {
             try {
                 const response = await fetch(candidate.url);
+                console.log(`Trying ${candidate.name}: HTTP ${response.status}`);
                 if (!response.ok) {
                     failures.push(`${candidate.name}: HTTP ${response.status}`);
                     continue;
@@ -33,7 +34,7 @@ async function loadStats() {
         }
 
         if (!html) {
-            throw new Error(`Unable to fetch stats (${failures.join(" | ")}). Start powershell proxy: .\\proxy-server.ps1`);
+            throw new Error(`Unable to fetch stats (${failures.join(" | ")}).`);
         }
 
         const parser = new DOMParser();
