@@ -51,4 +51,4 @@ Live at: https://lorenasandoval88.github.io/get-23andme-data/
 </p>
 
 
-<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />
+[<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />](https://lorenasandoval88.github.io/get-23andme-data/)
