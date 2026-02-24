@@ -1,4 +1,6 @@
-import { fetch23andMeParticipants } from './data/genomicData.js';
+import { loadProfiles } from './loadProfiles.js';
 
-const participants = await fetch23andMeParticipants(5);
-console.log("Sample participants:", participants);
+
+// Load profiles and render table
+loadProfiles();
+
