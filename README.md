@@ -1,29 +1,47 @@
 # get-23andme-data
 
-Simple demo that reads PGP statistics and plots 23andMe values.
+Simple demo that finds 23andMe files from the [Personal Genome Project](https://my.pgp-hms.org/public_genetic_data).
 Live at: https://lorenasandoval88.github.io/get-23andme-data/
 
-## Run locally (Node proxy)
 
-1. Install Node.js 18+.
-2. Install dependencies:
+Overview
 
-	npm install
+get-23andme-data is a web-based demonstration application that programmatically retrieves, parses, and visualizes publicly available genotype data originating from 23andMe tests that have been shared through the Personal Genome Project (PGP). The project serves as a proof of concept for working with direct-to-consumer (DTC) genetic datasets, showing how raw genotype files can be accessed, processed, and presented in an interactive interface.
 
-3. Start the proxy + static server:
+Purpose
 
-	npm start
+The repository is designed to illustrate:
 
-4. Open:
+Integration with open genomic data sources (specifically PGP participant datasets)
 
-	http://localhost:3000
+Parsing of 23andMe raw genotype text files
 
-The browser fetches `GET /pgp-stats` from the local proxy server to avoid CORS issues.
+Extraction of selected SNP markers and associated metadata
 
-## If public proxies are blocked
+Presentation of participant summaries and statistics through a browser-based UI
 
-Run a local PowerShell proxy in a terminal:
+Educational exploration of consumer genomics workflows
 
-`./proxy-server.ps1`
+It is intended for demonstration, research, and educational use only and does not provide medical interpretation or diagnostic functionality.
 
-Then open the app with Live Server as usual. The frontend automatically tries `http://localhost:3001/pgp-stats`.
+Functionality
+
+Key features include:
+
+Automated retrieval of publicly shared genotype datasets
+
+Client-side or server-side processing of genotype files
+
+Visualization of participant information and selected genetic markers
+
+Aggregated summary statistics derived from multiple participants
+
+Simple web interface for browsing available profiles
+
+Data Source
+
+All genetic data displayed by the application originates from publicly consented participants in the Personal Genome Project, which provides open-access genomic and phenotype datasets for research and educational purposes.
+
+Scope and Limitations
+
+The project is not intended to replicate the full functionality of commercial genetic testing services. Instead, it demonstrates data handling pipelines and visualization concepts using openly licensed datasets. No clinical claims are made, and users should not interpret results as medical advice.
