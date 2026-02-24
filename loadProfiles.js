@@ -53,7 +53,7 @@ function renderProfilesTable(profiles) {
                 <td>${fileLink}</td>
             </tr>
         `;
-        console.log("file",fileLink)
+        console.log("file url:",file23andMe.download_url )
     }
     
     html += '</tbody></table>';
