@@ -10,7 +10,7 @@
     "url": "git+https://github.com/lorenasandoval88/get-23andme-data.git"
   },
   "scripts": {
-    "start": "node proxy-server.js",
+    "start": "node server/proxy-server.js",
     "build": "rollup -c",
     "prepublishOnly": "npm run build"
   },

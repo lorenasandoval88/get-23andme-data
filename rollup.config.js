@@ -4,7 +4,7 @@ import json from '@rollup/plugin-json';
 import terser from '@rollup/plugin-terser';
 
 export default {
-  input: 'index.js',
+  input: 'src/js/main.js',
   output: {
     file: 'dist/bundle.js',
     format: 'iife',
