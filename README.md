@@ -1,7 +1,11 @@
 # get-23andme-data
 
-Simple demo that finds 23andMe files from the [Personal Genome Project](https://my.pgp-hms.org/public_genetic_data).
+
 Live at: https://lorenasandoval88.github.io/get-23andme-data/
+
+
+Simple demo that finds 23andMe files from the [Personal Genome Project](https://my.pgp-hms.org/public_genetic_data).
+
 
 
 <h2>Overview</h2>
