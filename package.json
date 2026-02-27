@@ -2,6 +2,7 @@
   "type": "module",
   "name": "get-23andme-data",
   "version": "1.0.0",
+  "description": "Fetch and cache 23andMe genetic data from the Personal Genome Project (PGP)",
   "license": "MIT",
   "author": "Lorena Sandoval",
   "homepage": "https://lorenasandoval88.github.io/get-23andme-data/",
@@ -9,6 +10,16 @@
     "type": "git",
     "url": "git+https://github.com/lorenasandoval88/get-23andme-data.git"
   },
+  "keywords": ["23andme", "genetics", "genomics", "pgp", "personal-genome-project"],
+  "main": "dist/sdk.cjs",
+  "module": "dist/sdk.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/sdk.mjs",
+      "require": "./dist/sdk.cjs"
+    }
+  },
+  "files": ["dist", "src", "README.md"],
   "scripts": {
     "start": "node server/proxy-server.js",
     "build": "rollup -c",
