@@ -6,7 +6,7 @@ import terser from '@rollup/plugin-terser';
 export default [
   // Browser bundle (IIFE)
   {
-    input: 'src/js/main.js',
+    input: 'src/js/get23_main.js',
     output: {
       file: 'dist/bundle.js',
       format: 'iife',
@@ -22,7 +22,7 @@ export default [
   },
   // ESM module
   {
-    input: 'src/js/data/genomicData.js',
+    input: 'src/js/data/get23_genomicData.js',
     output: {
       file: 'dist/sdk.mjs',
       format: 'es',
@@ -36,7 +36,7 @@ export default [
   },
   // CommonJS module
   {
-    input: 'src/js/data/genomicData.js',
+    input: 'src/js/data/get23_genomicData.js',
     output: {
       file: 'dist/sdk.cjs',
       format: 'cjs',

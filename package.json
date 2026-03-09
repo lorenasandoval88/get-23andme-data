@@ -10,7 +10,13 @@
     "type": "git",
     "url": "git+https://github.com/lorenasandoval88/get-23andme-data.git"
   },
-  "keywords": ["23andme", "genetics", "genomics", "pgp", "personal-genome-project"],
+  "keywords": [
+    "23andme",
+    "genetics",
+    "genomics",
+    "pgp",
+    "personal-genome-project"
+  ],
   "main": "dist/sdk.cjs",
   "module": "dist/sdk.mjs",
   "exports": {
@@ -19,7 +25,11 @@
       "require": "./dist/sdk.cjs"
     }
   },
-  "files": ["dist", "src", "README.md"],
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "start": "node server/proxy-server.js",
     "build": "rollup -c",
@@ -29,10 +39,11 @@
     "@rollup/plugin-commonjs": "^28.0.0",
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
-    "@rollup/plugin-terser": "^0.4.0",
-    "rollup": "^4.0.0"
+    "@rollup/plugin-terser": "^1.0.0",
+    "rollup": "^4.59.0"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "localforage": "^1.10.0"
   }
 }

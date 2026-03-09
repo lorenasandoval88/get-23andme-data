@@ -1,7 +1,7 @@
 import {
     fetch23andMeParticipants,
     fetchProfile
-} from './data/genomicData.js';
+} from './data/get23_genomicData.js';
 
 const PROFILE_CACHE_PREFIX = "pgp:profile:";
 
