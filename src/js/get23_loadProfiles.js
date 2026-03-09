@@ -1,5 +1,5 @@
 import {
-    fetch23andMeParticipants,
+    fetch23andMeParticipants,// gets the participant list
     fetchProfile
 } from './data/get23_genomicData.js';
 
@@ -117,13 +117,13 @@ async function loadProfiles() {
 
     try {
         const participants = await fetch23andMeParticipants();
+        //pick the first 10 unique IDs to avoid overwhelming the system with too many requests
         const participants_ids = [...new Set(participants.map(p => p.id))].slice(0, 10);
-        console.log("Fetching profiles for:", participants_ids);
+        console.log(`Try cache first or else fetch ${participants_ids.length} profiles for:`, participants_ids);
 
         let cachedCount = 0;
         let fetchedCount = 0;
 
-        console.log("checking local cache for profiles:", participants_ids)
 
         const profiles = await Promise.all(
 
@@ -153,7 +153,7 @@ async function loadProfiles() {
                 }
             })
         );
-        console.log(`using local cache for ${cachedCount} profiles:`, participants_ids);
+        console.log(`Using local cache for ${cachedCount} profiles:`, participants_ids);
 
         const source = cachedCount > 0 && fetchedCount === 0 ?
             'cache' :
