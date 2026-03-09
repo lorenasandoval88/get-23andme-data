@@ -56,3 +56,36 @@ Simple demo that finds 23andMe files from the [Personal Genome Project](https://
 
 
 [<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />](https://lorenasandoval88.github.io/get-23andme-data/)
+
+## Architecture
+
+- `src/js/`: browser app modules (`get23_main.js`, `get23_loadProfiles.js`, `get23_loadStats.js`).
+- `src/js/data/`: reusable data-fetching module (`get23_genomicData.js`).
+- `sdk.js`: public SDK entrypoint (exports the API used by consumers).
+- `src/css/`: app styles (`styles.css`).
+- `server/`: local proxy server (`proxy-server.js`) used to bypass CORS and serve PGP-backed endpoints.
+- `dist/`: Rollup build outputs:
+  - `dist/bundle.js` for the bundled browser app.
+  - `dist/sdk.mjs` for ESM SDK output.
+  - `dist/sdk.cjs` for CommonJS SDK output.
+
+## Build
+
+Run `npm run build` to generate:
+
+- `dist/bundle.js`
+- `dist/sdk.mjs`
+- `dist/sdk.cjs`
+
+## Run
+
+- Run `npm run start` to start the local proxy/static server on `http://localhost:3000`.
+- Open `http://localhost:3000` in your browser.
+- If you use a separate static server (for example VS Code Live Server), keep the proxy running for API calls to `http://localhost:3000`.
+
+## SDK API
+
+Public exports from `sdk.js`:
+
+- `loadProfiles`
+- `loadStats`
