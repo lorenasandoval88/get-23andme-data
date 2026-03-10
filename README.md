@@ -1,7 +1,6 @@
 # get-23andme-data
-Retrieve **23andMe files** from the **The Personal Genome Project** directly in the browser.
 
-This lightweight JavaScript SDK programmatically retrieves, parses,  caches in browser storage, and visualizes publicly available genotype data originating from 23andMe tests that have been shared through the [Personal Genome Project](https://my.pgp-hms.org/public_genetic_data). 
+JavaScript SDK for retrieving and summarizing **23andMe participant and statistics data** from the [**Personal Genome Project (PGP)**](https://my.pgp-hms.org/public_genetic_data), with **browser caching using LocalForage**.
 
 ---
 
@@ -42,7 +41,7 @@ console.log({ participants, firstProfile });
 ## Architecture
 
 - `src/js/`: browser app modules (`get23_main.js`, `get23_loadProfiles.js`, `get23_loadStats.js`).
-- `src/js/data/`: reusable data-fetching module (`get23_genomicData.js`).
+- `src/js/data/`: reusable data-fetching module (`get23_allUsers.js`).
 - `sdk.js`: public SDK entrypoint (exports the API used by consumers).
 - `src/css/`: app styles (`styles.css`).
 - `server/`: local proxy server (`proxy-server.js`) used to bypass CORS and serve PGP-backed endpoints.
@@ -64,10 +63,6 @@ Run `npm run build` to generate:
 - Run `npm run start` to start the local proxy/static server on `http://localhost:3000`.
 - Open `http://localhost:3000` in your browser.
 - If you use a separate static server (for example VS Code Live Server), keep the proxy running for API calls to `http://localhost:3000`.
-
-## SDK API
-
-Public exports from `sdk.js`:
 
 ## SDK API
 
