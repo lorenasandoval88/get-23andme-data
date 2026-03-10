@@ -73,3 +73,10 @@ Public exports from `sdk.js`:
 - `fetchProfile`
 - `getLastAllUsersSource`
 - `getLastProfileSource`
+- `getScoresPerTrait`
+- `loadScores`
+- `loadTraitStats`
+- `getTraitToPgsIdsFromTraitSummary`
+- `getStoredScoreSummary`
+
+See the [wiki](https://github.com/lorenasandoval88/get-23andme-data/wiki) for detailed function documentation.
