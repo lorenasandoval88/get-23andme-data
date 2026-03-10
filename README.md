@@ -1,5 +1,5 @@
 # get-23andme-data
-Retrieve **23andMe files** from the **The [Personal Genome Project** directly in the browser.
+Retrieve **23andMe files** from the **The Personal Genome Project** directly in the browser.
 
 This lightweight JavaScript SDK programmatically retrieves, parses,  caches in browser storage, and visualizes publicly available genotype data originating from 23andMe tests that have been shared through the [Personal Genome Project](https://my.pgp-hms.org/public_genetic_data). 
 
