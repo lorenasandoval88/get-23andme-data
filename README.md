@@ -26,6 +26,9 @@ const firstProfile = participants.length ? await sdk.fetchProfile(participants[0
 console.log({ participants, firstProfile });
 ```
 
+
+[<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />](https://lorenasandoval88.github.io/get-23andme-data/)
+
 <h2>Functionality</h2>
 <p>Key features include:</p>
 <ul>
@@ -35,10 +38,6 @@ console.log({ participants, firstProfile });
   <li>Aggregated summary statistics derived from multiple participants</li>
   <li>Simple web interface for browsing available profiles</li>
 </ul>
-
-
-
-[<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />](https://lorenasandoval88.github.io/get-23andme-data/)
 
 ## Architecture
 
