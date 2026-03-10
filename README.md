@@ -69,5 +69,12 @@ Run `npm run build` to generate:
 
 Public exports from `sdk.js`:
 
-- `loadProfiles`
+## SDK API
+
+Public exports from `sdk.js`:
+
 - `loadStats`
+- `fetch23andMeParticipants`
+- `fetchProfile`
+- `getLastAllUsersSource`
+- `getLastProfileSource`
