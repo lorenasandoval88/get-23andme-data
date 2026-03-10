@@ -11,7 +11,8 @@ function isCacheWithinMonths(savedAt, months = 3) {
 }
 
 async function getCachedStats() {
-    console.log("checking local cache for stats summary...");
+    console.log("getCachedStats-------------------")
+    console.log("Checking local cache for stats summary...");
 
     if (!window.localforage) return null;
     try {
@@ -25,10 +26,10 @@ async function getCachedStats() {
             console.log(`Using cached stats (${Math.round(age / (24 * 60 * 60 * 1000))} days old)`);
             return { stats, source: `${source} (cached)` };
         }
-        console.log("Cache expired, fetching fresh data");
+        console.log("Failed to read stats cache:expired or missing, fetching fresh data");
         return null;
     } catch (e) {
-        console.warn("Cache read error:", e);
+        console.warn("stats cache read error:", e);
         return null;
     }
 }
@@ -42,9 +43,12 @@ async function setCachedStats(stats, source) {
     });
 }
 
-async function loadStats() {
+async function loadStats(options = {}) {
+    const forceRefresh = options.forceRefresh === true;
     const sourceStatusEl = document.getElementById("sourceStatus");
+    const forceRefreshBtn = document.getElementById("forceRefreshStatsBtn");
     if (sourceStatusEl) sourceStatusEl.textContent = "Source: checking...";
+    if (forceRefreshBtn) forceRefreshBtn.disabled = true;
 
     const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
     // If you added a token:
@@ -52,9 +56,9 @@ async function loadStats() {
 
     try {
         // Check cache first
-        const cached = await getCachedStats();
+        const cached = forceRefresh ? null : await getCachedStats();
         if (cached) {
-            console.log("Using cached stats:", cached);
+            //console.log("Using cached stats:", cached);
             if (sourceStatusEl) sourceStatusEl.textContent = `Source: ${cached.source}`;
             document.getElementById("output").textContent = `${JSON.stringify(cached.stats, null, 2)}\n\nSource: ${cached.source}`;
             
@@ -66,7 +70,10 @@ async function loadStats() {
             Plotly.newPlot("chart", data, { title: "PGP 23andMe Data Statistics" });
             return;
         }
-
+        if (forceRefresh) {
+            console.log("Force refresh requested: bypassing cache");
+        }
+        // If no valid cache, try fetching from multiple sources with fallbacks
         const target = "https://my.pgp-hms.org/public_genetic_data/statistics";
         const candidates = [
              // ✅ your Cloudflare Worker (put near the top)
@@ -85,7 +92,7 @@ async function loadStats() {
         for (const candidate of candidates) {
             try {
                 const response = await fetch(candidate.url);
-                console.log(`Trying ${candidate.name}: HTTP ${response.status}`);
+                //console.log(`Trying ${candidate.name}: HTTP ${response.status}`);
                 if (!response.ok) {
                     failures.push(`${candidate.name}: HTTP ${response.status}`);
                     continue;
@@ -122,7 +129,7 @@ async function loadStats() {
                 participants: parseInt(cols[2].innerText.replace(/,/g, ""), 10),
                 positions: parseInt(cols[3].innerText.replace(/,/g, ""), 10)+"k"
             };
-            console.log("Extracted stats:", stats);
+            //console.log("Extracted stats:", stats);
             break;
         }
 
@@ -152,5 +159,12 @@ async function loadStats() {
     } catch (error) {
         if (sourceStatusEl) sourceStatusEl.textContent = "Source: unavailable";
         document.getElementById("output").textContent = `Error: ${error.message}`;
+    } finally {
+        if (forceRefreshBtn) forceRefreshBtn.disabled = false;
     }
+}
+
+const forceRefreshBtn = document.getElementById("forceRefreshStatsBtn");
+if (forceRefreshBtn) {
+    forceRefreshBtn.addEventListener("click", () => loadStats({ forceRefresh: true }));
 }

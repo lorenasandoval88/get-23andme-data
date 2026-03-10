@@ -5,47 +5,57 @@
  * Uses local proxy to bypass CORS restrictions
  */
 
+const PGP_23ANDME_URL = "https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%93&data_type=23andMe&commit=Search";
+const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
+const ALL_PROFILES_CACHE_KEY = "pgp:23andme-allUsers";
+const PROFILE_CACHE_PREFIX = "pgp:profile:";
+let lastAllUsersSource = null;
+const lastProfileSourceById = new Map();
 
-/**
- * Fetch 23andMe participants from PGP
- * @param {number} limit - Number of participants to return (default: 1300)
- * @returns {Promise<Array>} Array of participant objects
- */
+function isCacheWithinMonths(savedAt, months = 3) {
+    if (!savedAt) return false;
+    const savedDate = new Date(savedAt);
+    if (Number.isNaN(savedDate.getTime())) return false;
 
-
-
-async function fetch23andMeParticipants(limit = 1300) {
-    const proxyUrls = [
-        `http://localhost:3000/pgp-participants` //,
-        //   `https://api.allorigins.win/raw?url=${encodeURIComponent(PGP_23ANDME_URL)}`,
-        //  `https://corsproxy.io/?${PGP_23ANDME_URL}`
-    ];
-
-    let html = null;
-    let errors = [];
-
-    for (const proxyUrl of proxyUrls) {
-        try {
-            const response = await fetch(proxyUrl);
-            if (response.ok) {
-                html = await response.text();
-                break;
-            }
-            errors.push(`HTTP ${response.status}`);
-        } catch (error) {
-            errors.push(error.message);
-        }
-    }
-
-    if (!html) {
-        throw new Error(`Failed to fetch PGP data: ${errors.join(", ")}`);
-    }
-
-    return parseParticipants(html, limit);
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    return savedDate >= cutoff;
 }
-// Example
-//const participants = await fetch23andMeParticipants();//console.log("23andMe participants:", participants);
-// const participants_ids = [...new Set(participants.map(p => p.id))];
+
+// Helper functions for fetch23andMeParticipants() cache management
+async function cacheParticipantsIfMissing(participants) {
+        console.log("cacheParticipantsIfMissing-------------------");
+
+    if (!window.localforage) return;
+
+    try {
+        const existing = await window.localforage.getItem(ALL_PROFILES_CACHE_KEY);
+        if (existing) return;
+
+        await window.localforage.setItem(ALL_PROFILES_CACHE_KEY, participants);
+        console.log(`Saved participants cache: ${ALL_PROFILES_CACHE_KEY}`);
+    } catch (error) {
+        console.warn(`Failed to write participants cache (${ALL_PROFILES_CACHE_KEY}):`, error);
+    }
+}
+
+// Helper functions for fetch23andMeParticipants() cache management
+async function getCachedParticipants(limit = 1300) {
+    console.log("getCachedParticipants-------------------");
+    console.log("Checking local cache for participants...");
+    if (!window.localforage) return null;
+
+    try {
+        const cached = await window.localforage.getItem(ALL_PROFILES_CACHE_KEY);
+        console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY}:`, cached ? `found ${cached.length} entries` : "no cache",cached);
+        if (!Array.isArray(cached) || cached.length === 0) return null;
+        return cached.slice(0, limit);
+    } catch (error) {
+        console.warn(`Failed to read participants cache (${ALL_PROFILES_CACHE_KEY}):`, error);
+        return null;
+    }
+}
+
 
 /**
  * Parse HTML to extract participant data
@@ -99,45 +109,144 @@ function parseParticipants(html, limit) {
 }
 
 /**
- * Display participants in a specified element
- * @param {string} elementId - ID of the element to display results
- * @param {number} limit - Number of participants to fetch
+ * Fetch 23andMe participants from PGP ~ 1,000
+ * @param {number} limit - Number of participants to return (default: 1300)
+ * @returns {Promise<Array>} Array of participant objects
+ * checks pgp:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
  */
-async function displayParticipants(elementId, limit = 1300) {
-    const element = document.getElementById(elementId);
-    if (!element) {
-        console.error(`Element with id "${elementId}" not found`);
-        return;
+
+async function fetch23andMeParticipants(limit = 1300) {
+    console.log("fetch23andMeParticipants-------------------");
+    // console.log("Fetching 23andMe participants with limit:", limit);
+    // console.log("PGP_23ANDME_URL:",PGP_23ANDME_URL)
+
+    // begin if fetch flow if cache is available
+    const cachedParticipants = await getCachedParticipants(limit);
+    if (cachedParticipants) {
+        lastAllUsersSource = "cache";
+        // console.log(`Loaded participants from cache: ${cachedParticipants.length}`);
+        return cachedParticipants;
+    }
+    // begin else fetch flow if cache is missing or empty
+    const candidates = [
+        { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(PGP_23ANDME_URL)}` },
+        { name: "local-proxy", url: "http://localhost:3000/pgp-participants" },
+        { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(PGP_23ANDME_URL)}` },
+        { name: "corsproxy", url: `https://corsproxy.io/?${PGP_23ANDME_URL}` }
+    ];
+    let html = null;
+    let usedSource = null;
+    const errors = [];
+
+    for (const candidate of candidates) {
+        try {
+            console.log(`Trying to fetch participants from ${candidate.name}...`);
+            const response = await fetch(candidate.url);
+            if (response.ok) {
+                console.log(`Successfully fetched from ${candidate.name}`);
+                html = await response.text();
+                usedSource = candidate.name;
+                break;
+            }
+            errors.push(`${candidate.name}: HTTP ${response.status}`);
+        } catch (error) {
+            errors.push(`${candidate.name}: ${error.message}`);
+        }
     }
 
-    element.textContent = "Loading participants...";
+    if (!html) {
+        throw new Error(`Failed to fetch PGP data: ${errors.join(", ")}`);
+    }
+
+    lastAllUsersSource = usedSource;
+    // console.log("lastAllUsersSource",lastAllUsersSource)
+    const participants = parseParticipants(html, limit);
+    // console.log("parseParticipants(html, limit):", usedSource, participants);
+    await cacheParticipantsIfMissing(participants);
+    return participants;
+}
+
+// Fetch individual profile by ID with cache fallback
+// Example: fetchProfile("hu416394").then(console.log);
+async function fetchProfile(id) {
+    const cachedProfile = await getCachedProfile(id);
+    if (cachedProfile) {
+        lastProfileSourceById.set(id, "cache");
+        return cachedProfile;
+    }
+
+    const profileUrl = `https://my.pgp-hms.org/profile/${id}.json`;
+    const candidates = [
+        { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(profileUrl)}` },
+        { name: "local-proxy", url: `http://localhost:3000/pgp-profile/${id}` },
+        { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(profileUrl)}` },
+        { name: "corsproxy", url: `https://corsproxy.io/?${profileUrl}` }
+    ];
+
+    const errors = [];
+    for (const candidate of candidates) {
+        try {
+            const res = await fetch(candidate.url, {
+                headers: {
+                    "Accept": "application/json"
+                }
+            });
+
+            if (!res.ok) {
+                errors.push(`${candidate.name}: HTTP ${res.status}`);
+                continue;
+            }
+
+            const data = await res.json();
+            lastProfileSourceById.set(id, candidate.name);
+            await setCachedProfile(id, data);
+            return data;
+        } catch (error) {
+            errors.push(`${candidate.name}: ${error.message}`);
+        }
+    }
+
+    throw new Error(`Failed to fetch profile ${id}: ${errors.join(", ")}`);
+}
+
+// Helper functions for fetchProfile(id) cache management
+async function getCachedProfile(id) {
+    if (!window.localforage) return null;
 
     try {
-        const participants = await fetch23andMeParticipants(limit);
-        element.textContent = JSON.stringify(participants, null, 2);
-        return participants;
+        const cached = await window.localforage.getItem(PROFILE_CACHE_PREFIX + id);
+        if (!cached) return null;
+
+        const { savedAt, profile } = cached;
+        if (isCacheWithinMonths(savedAt)) {
+            return profile;
+        }
+        return null;
     } catch (error) {
-        element.textContent = `Error: ${error.message}`;
-        throw error;
+        return null;
     }
 }
 
+// Helper functions for fetchProfile(id) cache management
+async function setCachedProfile(id, profile) {
+    if (!window.localforage) return;
+    await window.localforage.setItem(PROFILE_CACHE_PREFIX + id, {
+        savedAt: new Date().toISOString(),
+        profile
+    });
+}
+function getLastAllUsersSource() {
+    // console.log("getLastAllUsersSource:", lastAllUsersSource);
+    return lastAllUsersSource;
+}
 
-
-async function fetchProfile(id) {
-    const url = `http://localhost:3000/pgp-profile/${id}`;
-
-    const res = await fetch(url);
-
-    if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
+function getLastProfileSource(id) {
+    // console.log("getLastProfileSource:", lastProfileSourceById.get(id));
+    return lastProfileSourceById.get(id) || null;
 }
 
 
+// ALL USERS ENDPOINT (VCF 23ANDME ETC METADATA, WITHOUT FILES) - PAGINATED JSON (NO HTML PARSING, MORE STABLE)
 // without web crawling, so we dont rely on the HTML structure of the page, which can change 
 // and break our code. Instead, we can use the JSON endpoint that provides structured data about 
 // users. This endpoint is paginated, so we can fetch all pages to get the complete list of 
@@ -176,8 +285,8 @@ async function fetchProfile(id) {
 //   return all;
 // }
 
-exports.displayParticipants = displayParticipants;
 exports.fetch23andMeParticipants = fetch23andMeParticipants;
 exports.fetchProfile = fetchProfile;
-exports.parseParticipants = parseParticipants;
+exports.getLastAllUsersSource = getLastAllUsersSource;
+exports.getLastProfileSource = getLastProfileSource;
 //# sourceMappingURL=sdk.cjs.map

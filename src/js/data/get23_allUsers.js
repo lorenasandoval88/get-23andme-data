@@ -22,7 +22,7 @@ function isCacheWithinMonths(savedAt, months = 3) {
 
 // Helper functions for fetch23andMeParticipants() cache management
 async function cacheParticipantsIfMissing(participants) {
-        console.log("cacheParticipantsIfMissing-------------------");
+        console.log("cacheParticipantsIfMissing-------------------")
 
     if (!window.localforage) return;
 
@@ -39,7 +39,7 @@ async function cacheParticipantsIfMissing(participants) {
 
 // Helper functions for fetch23andMeParticipants() cache management
 async function getCachedParticipants(limit = 1300) {
-    console.log("getCachedParticipants-------------------");
+    console.log("getCachedParticipants-------------------")
     console.log("Checking local cache for participants...");
     if (!window.localforage) return null;
 
@@ -114,7 +114,7 @@ function parseParticipants(html, limit) {
  */
 
 async function fetch23andMeParticipants(limit = 1300) {
-    console.log("fetch23andMeParticipants-------------------");
+    console.log("fetch23andMeParticipants-------------------")
     // console.log("Fetching 23andMe participants with limit:", limit);
     // console.log("PGP_23ANDME_URL:",PGP_23ANDME_URL)
 
@@ -244,6 +244,18 @@ function getLastProfileSource(id) {
 }
 
 
+
+
+// Export for use as ES module
+export {
+    fetch23andMeParticipants,
+    // parseParticipants,
+    fetchProfile,
+    getLastAllUsersSource,
+    getLastProfileSource
+};
+
+
 // ALL USERS ENDPOINT (VCF 23ANDME ETC METADATA, WITHOUT FILES) - PAGINATED JSON (NO HTML PARSING, MORE STABLE)
 // without web crawling, so we dont rely on the HTML structure of the page, which can change 
 // and break our code. Instead, we can use the JSON endpoint that provides structured data about 
@@ -282,6 +294,3 @@ function getLastProfileSource(id) {
 
 //   return all;
 // }
-
-export { fetch23andMeParticipants, fetchProfile, getLastAllUsersSource, getLastProfileSource };
-//# sourceMappingURL=sdk.mjs.map

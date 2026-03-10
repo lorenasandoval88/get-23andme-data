@@ -1,6 +1,143 @@
-import { loadProfiles } from './get23_loadProfiles.js';
-// TODO make npm package/sdk
+import {
+    fetch23andMeParticipants,// gets the participant list
+    fetchProfile,
+    getLastAllUsersSource,
+    getLastProfileSource
+} from './data/get23_allUsers.js';
 
-// Load profiles and render table
-loadProfiles();
+// Renders the final participant/profile table in #profilesTable.
+// Input shape: [{ id, profile, error }]
+function renderProfilesTable(profiles) {
+    const container = document.getElementById('profilesTable');
+    if (!container) return;
 
+    const validProfiles = profiles.filter(p => p.profile);
+
+    if (validProfiles.length === 0) {
+        container.innerHTML = '<p class="text-muted">No profiles loaded</p>';
+        return;
+    }
+
+    let html = `
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>State</th>
+                    <th>Sex</th>
+                    <th>Profile</th>
+                    <th>23andMe File</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    for (const {
+            id,
+            profile
+        } of validProfiles) {
+        const name = profile.real_name || profile.username || 'N/A';
+        const state = profile.state || 'N/A';
+        const sex = profile.sex || 'N/A';
+        const profileUrl = `https://my.pgp-hms.org/profile/${id}`;
+
+        // Find 23andMe file from profile.files
+        const files = profile.files || [];
+        const file23andMe = files.find(f =>
+            (f.data_type && f.data_type.toLowerCase().includes('23andme')) ||
+            (f.name && f.name.toLowerCase().includes('23andme'))
+        );
+        const fileLink = file23andMe && file23andMe.download_url ?
+            `<a href=${file23andMe.download_url} target="_blank">Download</a>` :
+            'N/A';
+
+        html += `
+            <tr>
+                <td><code>${id}</code></td>
+                <td>${name}</td>
+                <td>${state}</td>
+                <td>${sex}</td>
+                <td><a href="${profileUrl}" target="_blank">View</a></td>
+                <td>${fileLink}</td>
+            </tr>
+        `;
+        //console.log("file url:", file23andMe ? file23andMe.download_url : 'N/A');
+    }
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Orchestrates loading top 10 unique participant profiles,
+// updates source status text, and then renders the table.
+async function displayProfiles() {
+    console.log("displayProfiles-------------------")
+    const container = document.getElementById('profilesTable');
+    const sourceStatusEl = document.getElementById('profilesSourceStatus');
+    if (container) container.innerHTML = 'Loading profiles...';
+    if (sourceStatusEl) sourceStatusEl.textContent = 'Source: checking...';
+    //console.log("displayProfiles------------------")
+    try {
+        const participants = await fetch23andMeParticipants();
+        const participantsSource = getLastAllUsersSource();
+        // Pick first 10 unique IDs to keep UI fast and avoid too many concurrent requests.
+        const participants_ids = [...new Set(participants.map(p => p.id))].slice(0, 10);
+        //console.log(`Try cache first or else fetch ${participants_ids.length} profiles for:`, participants_ids);
+
+        let cachedCount = 0;
+        let fetchedCount = 0;
+        const fetchedProfileSources = new Set();
+
+
+        const profiles = await Promise.all(
+
+            participants_ids.map(async (id) => {
+                try {
+                    // fetchProfile is cache-aware in get23_allUsers.js
+                    const profile = await fetchProfile(id);
+                    const profileSource = getLastProfileSource(id);
+
+                    if (profileSource === "cache") {
+                        cachedCount++;
+                    } else {
+                        if (profileSource) fetchedProfileSources.add(profileSource);
+                        fetchedCount++;
+                    }
+                    return {
+                        id,
+                        profile,
+                        error: null
+                    };
+                } catch (error) {
+                    return {
+                        id,
+                        profile: null,
+                        error: error.message
+                    };
+                }
+            })
+        );
+        //console.log(`Using local cache for ${cachedCount} profiles:`, participants_ids);
+
+        const source = cachedCount > 0 && fetchedCount === 0 ?
+            'cache' :
+            cachedCount > 0 ?
+            `${cachedCount} cached, ${fetchedCount} fetched` :
+            'fresh';
+        // participantsSourceLabel = where participant IDs came from (cache/network source)
+        // profilesSourceLabel = where profile JSON came from (cache or fallback endpoint names)
+        const participantsSourceLabel = participantsSource || "unknown";
+        const profilesSourceLabel = fetchedProfileSources.size > 0 ? Array.from(fetchedProfileSources).join(", ") : "cache";
+        if (sourceStatusEl) sourceStatusEl.textContent = `Source: ${source} (participants: ${participantsSourceLabel}; profiles: ${profilesSourceLabel})`;
+
+        //console.log("Profiles:", profiles);
+        renderProfilesTable(profiles);
+    } catch (error) {
+        if (sourceStatusEl) sourceStatusEl.textContent = 'Source: unavailable';
+        if (container) container.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+    }
+}
+
+// Entry point for this page/module.
+displayProfiles();

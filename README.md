@@ -60,7 +60,7 @@ Simple demo that finds 23andMe files from the [Personal Genome Project](https://
 ## Architecture
 
 - `src/js/`: browser app modules (`get23_main.js`, `get23_loadProfiles.js`, `get23_loadStats.js`).
-- `src/js/data/`: reusable data-fetching module (`get23_genomicData.js`).
+- `src/js/data/`: reusable data-fetching module (`get23_allUsers.js`).
 - `sdk.js`: public SDK entrypoint (exports the API used by consumers).
 - `src/css/`: app styles (`styles.css`).
 - `server/`: local proxy server (`proxy-server.js`) used to bypass CORS and serve PGP-backed endpoints.
