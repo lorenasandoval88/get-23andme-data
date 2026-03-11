@@ -40,6 +40,26 @@ console.log({ participants, firstProfile });
 
 ## Architecture
 
+get-23andme-data/
+├── src/
+│   ├── js/
+│   │   ├── data/get23_allUsers.js          (296 lines) - Data fetching module
+│   │   ├── get23_loadStats.js              (169 lines) - Statistics loading
+│   │   └── get23_main.js                   (142 lines) - Main UI orchestration
+│   └── css/
+│       └── styles.css
+├── server/
+│   └── proxy-server.js                     - Local CORS proxy
+├── dist/                                   - Build outputs
+│   ├── bundle.js                           - Browser bundle (IIFE)
+│   ├── sdk.mjs                             - ESM module export
+│   └── sdk.cjs                             - CommonJS module export
+├── sdk.js                                  - Public API entrypoint
+├── index.html                              - Web interface
+├── rollup.config.js                        - Build configuration
+├── package.json                            - Dependencies & scripts
+└── README.md                               - Main documentation
+
 - `src/js/`: browser app modules (`get23_main.js`, `get23_loadProfiles.js`, `get23_loadStats.js`).
 - `src/js/data/`: reusable data-fetching module (`get23_allUsers.js`).
 - `sdk.js`: public SDK entrypoint (exports the API used by consumers).
