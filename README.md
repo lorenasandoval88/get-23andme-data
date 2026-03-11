@@ -43,22 +43,26 @@ console.log({ participants, firstProfile });
 get-23andme-data/
 ├── src/
 │   ├── js/
-│   │   ├── data/get23_allUsers.js          (296 lines) - Data fetching module
-│   │   ├── get23_loadStats.js              (169 lines) - Statistics loading
-│   │   └── get23_main.js                   (142 lines) - Main UI orchestration
+│   │   ├── data/get23_allUsers.js   (296 lines) - Data fetching module
+│   │   ├── get23_loadStats.js       (169 lines) - Statistics loading
+│   │   └── get23_main.js            (142 lines) - Main UI orchestration
+│   │
 │   └── css/
 │       └── styles.css
+│
 ├── server/
-│   └── proxy-server.js                     - Local CORS proxy
-├── dist/                                   - Build outputs
-│   ├── bundle.js                           - Browser bundle (IIFE)
-│   ├── sdk.mjs                             - ESM module export
-│   └── sdk.cjs                             - CommonJS module export
-├── sdk.js                                  - Public API entrypoint
-├── index.html                              - Web interface
-├── rollup.config.js                        - Build configuration
-├── package.json                            - Dependencies & scripts
-└── README.md                               - Main documentation
+│   └── proxy-server.js              - Local CORS proxy
+│
+├── dist/                            - Build outputs
+│   ├── bundle.js                    - Browser bundle (IIFE)
+│   ├── sdk.mjs                      - ESM module export
+│   └── sdk.cjs                      - CommonJS module export
+│
+├── sdk.js                           - Public API entrypoint
+├── index.html                       - Web interface
+├── rollup.config.js                 - Build configuration
+├── package.json                     - Dependencies & scripts
+└── README.md                        - Main documentation
 
 - `src/js/`: browser app modules (`get23_main.js`, `get23_loadProfiles.js`, `get23_loadStats.js`).
 - `src/js/data/`: reusable data-fetching module (`get23_allUsers.js`).
@@ -69,6 +73,69 @@ get-23andme-data/
   - `dist/bundle.js` for the bundled browser app.
   - `dist/sdk.mjs` for ESM SDK output.
   - `dist/sdk.cjs` for CommonJS SDK output.
+
+## Core Functions
+
+The system is organized into three groups:
+
+1. **Public API Functions** – exported functions intended for external use.
+2. **Internal Cache Utilities** – helper functions used internally for caching.
+3. **UI Rendering Functions** – functions responsible for displaying data in the interface.
+
+---
+
+## Public API Functions
+
+These functions are exported and can be accessed through the SDK.
+
+| Function | File | Type | Description |
+|---|---|---|---|
+| `fetch23andMeParticipants()` | `/src/js/data/get23_allUsers.js` | async | Fetches the list of publicly available 23andMe participants from PGP. |
+| `fetchProfile(id)` | `/src/js/data/get23_allUsers.js` | async | Retrieves the profile JSON for a specific participant. |
+| `getLastAllUsersSource()` | `/src/js/data/get23_allUsers.js` | sync | Returns the source of the last participant dataset retrieval (cache or network). |
+| `getLastProfileSource()` | `/src/js/data/get23_allUsers.js` | sync | Returns the source of the last profile retrieval. |
+| `loadStats()` | `/src/js/get23_loadStats.js` | async | Loads statistics about available genetic datasets (exposed through `sdk.js`). |
+
+---
+
+## Internal Cache Utilities
+
+These functions manage LocalForage caching and are not exported.
+
+| Function | File | Type | Purpose |
+|---|---|---|---|
+| `parseParticipants()` | `/src/js/data/get23_allUsers.js` | sync | Parses participant HTML and extracts structured participant data. |
+| `getCachedParticipants()` | `/src/js/data/get23_allUsers.js` | async | Retrieves cached participant list from LocalForage. |
+| `cacheParticipantsIfMissing()` | `/src/js/data/get23_allUsers.js` | async | Stores participants in cache if no valid cache exists. |
+| `getCachedProfile()` | `/src/js/data/get23_allUsers.js` | async | Retrieves cached participant profile JSON. |
+| `setCachedProfile()` | `/src/js/data/get23_allUsers.js` | async | Stores participant profile data in LocalForage cache. |
+| `getCachedStats()` | `/src/js/get23_loadStats.js` | async | Retrieves cached dataset statistics. |
+| `setCachedStats()` | `/src/js/get23_loadStats.js` | async | Stores dataset statistics in cache. |
+| `isCacheWithinMonths()` | `/src/js/data/get23_allUsers.js` and `/src/js/get23_loadStats.js` | sync | Determines whether cached data is still valid based on time limits. |
+
+---
+
+## UI Rendering Functions
+
+These functions manage display logic in the browser interface.
+
+| Function | File | Type | Description |
+|---|---|---|---|
+| `displayProfiles()` | `/src/js/get23_main.js` | async | Main controller that loads and displays participant profiles. |
+| `renderProfilesTable()` | `/src/js/get23_main.js` | sync | Renders the participant dataset table in the user interface. |
+
+---
+
+## Architecture Summary
+
+The architecture separates concerns into three layers:
+
+- **Data Layer** – fetches participant data and profiles
+- **Cache Layer** – stores and retrieves cached data using LocalForage
+- **UI Layer** – renders participant information in the browser
+
+This separation allows the system to efficiently fetch genomic data, minimize network requests through caching, and maintain a responsive browser-based interface.
+
 
 ## Build
 
@@ -86,10 +153,3 @@ Run `npm run build` to generate:
 
 ## SDK API
 
-Public exports from `sdk.js`:
-
-- `loadStats`
-- `fetch23andMeParticipants`
-- `fetchProfile`
-- `getLastAllUsersSource`
-- `getLastProfileSource`
