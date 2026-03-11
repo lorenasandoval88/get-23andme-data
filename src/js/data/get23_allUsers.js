@@ -167,16 +167,18 @@ async function fetch23andMeParticipants(limit = 1300) {
 // Fetch individual profile by ID with cache fallback
 // Example: fetchProfile("hu416394").then(console.log);
 async function fetchProfile(id) {
-    const cachedProfile = await getCachedProfile(id);
+    const resolvedId = typeof id === "string" && id.trim() ? id.trim() : "hu09B28E";
+
+    const cachedProfile = await getCachedProfile(resolvedId);
     if (cachedProfile) {
-        lastProfileSourceById.set(id, "cache");
+        lastProfileSourceById.set(resolvedId, "cache");
         return cachedProfile;
     }
 
-    const profileUrl = `https://my.pgp-hms.org/profile/${id}.json`;
+    const profileUrl = `https://my.pgp-hms.org/profile/${resolvedId}.json`;
     const candidates = [
         { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(profileUrl)}` },
-        { name: "local-proxy", url: `http://localhost:3000/pgp-profile/${id}` },
+        { name: "local-proxy", url: `http://localhost:3000/pgp-profile/${resolvedId}` },
         { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(profileUrl)}` },
         { name: "corsproxy", url: `https://corsproxy.io/?${profileUrl}` }
     ];
@@ -196,15 +198,15 @@ async function fetchProfile(id) {
             }
 
             const data = await res.json();
-            lastProfileSourceById.set(id, candidate.name);
-            await setCachedProfile(id, data);
+            lastProfileSourceById.set(resolvedId, candidate.name);
+            await setCachedProfile(resolvedId, data);
             return data;
         } catch (error) {
             errors.push(`${candidate.name}: ${error.message}`);
         }
     }
 
-    throw new Error(`Failed to fetch profile ${id}: ${errors.join(", ")}`);
+    throw new Error(`Failed to fetch profile ${resolvedId}: ${errors.join(", ")}`);
 }
 
 // Helper functions for fetchProfile(id) cache management
