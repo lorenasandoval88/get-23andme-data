@@ -22,7 +22,7 @@ export default [
   },
   // ESM module
   {
-    input: 'src/js/data/get23_allUsers.js',
+    input: 'sdk.js',
     output: {
       file: 'dist/sdk.mjs',
       format: 'es',
@@ -36,7 +36,7 @@ export default [
   },
   // CommonJS module
   {
-    input: 'src/js/data/get23_allUsers.js',
+    input: 'sdk.js',
     output: {
       file: 'dist/sdk.cjs',
       format: 'cjs',

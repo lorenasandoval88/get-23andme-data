@@ -6,4 +6,4 @@ export { fetch23andMeParticipants,
         getLastAllUsersSource,
         getLastProfileSource
 
-  } from './js/data/get23_allUsers.js';
+      } from './src/js/data/get23_allUsers.js';
