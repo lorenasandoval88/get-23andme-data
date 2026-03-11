@@ -74,7 +74,7 @@ get-23andme-data/
   - `dist/bundle.js` for the bundled browser app.
   - `dist/sdk.mjs` for ESM SDK output.
   - `dist/sdk.cjs` for CommonJS SDK output.
- 
+ ```
   - | Directory/File       | Purpose                                                  |
 | -------------------- | -------------------------------------------------------- |
 | **src/**             | Source code for the application                          |
@@ -87,7 +87,7 @@ get-23andme-data/
 | **rollup.config.js** | Configuration file used for bundling the project         |
 | **package.json**     | Project dependencies and build scripts                   |
 | **README.md**        | Documentation describing the project and usage           |
-
+```
 
 ## Core Functions
 
