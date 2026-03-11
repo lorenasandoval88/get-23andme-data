@@ -171,4 +171,4 @@ if (forceRefreshBtn) {
     forceRefreshBtn.addEventListener("click", () => loadStats({ forceRefresh: true }));
 }
 
-export { loadStats };
+export { loadStats }
