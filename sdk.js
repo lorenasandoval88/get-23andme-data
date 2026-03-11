@@ -1,3 +1,7 @@
+
+import localforage from "localforage";
+export { localforage };
+
 export {loadStats} from './src/js/get23_loadStats.js';
 
 

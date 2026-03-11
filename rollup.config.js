@@ -14,7 +14,7 @@ export default [
       sourcemap: true
     },
     plugins: [
-      resolve(),
+      resolve({ browser: true }),
       commonjs(),
       json(),
       terser()
@@ -29,7 +29,7 @@ export default [
       sourcemap: true
     },
     plugins: [
-      resolve(),
+      resolve({ browser: true }),
       commonjs(),
       json()
     ]
@@ -43,7 +43,7 @@ export default [
       sourcemap: true
     },
     plugins: [
-      resolve(),
+      resolve({ browser: true }),
       commonjs(),
       json()
     ]

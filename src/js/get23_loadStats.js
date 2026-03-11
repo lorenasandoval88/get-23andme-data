@@ -1,4 +1,10 @@
+import localforage from "localforage";
+
 const CACHE_KEY = "pgp:23andme-stats";
+
+function getStorage() {
+    return localforage;
+}
 
 function isCacheWithinMonths(savedAt, months = 3) {
     if (!savedAt) return false;
@@ -14,9 +20,10 @@ async function getCachedStats() {
     console.log("getCachedStats-------------------")
     console.log("Checking local cache for stats summary...");
 
-    if (!window.localforage) return null;
+    const storage = getStorage();
+    if (!storage) return null;
     try {
-        const cached = await window.localforage.getItem(CACHE_KEY);
+        const cached = await storage.getItem(CACHE_KEY);
         if (!cached) return null;
 
         const { savedAt, stats, source } = cached;
@@ -35,8 +42,9 @@ async function getCachedStats() {
 }
 
 async function setCachedStats(stats, source) {
-    if (!window.localforage) return;
-    await window.localforage.setItem(CACHE_KEY, {
+    const storage = getStorage();
+    if (!storage) return;
+    await storage.setItem(CACHE_KEY, {
         savedAt: new Date().toISOString(),
         stats,
         source

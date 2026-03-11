@@ -3,12 +3,18 @@
  * Uses local proxy to bypass CORS restrictions
  */
 
+import localforage from "localforage";
+
 const PGP_23ANDME_URL = "https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%93&data_type=23andMe&commit=Search";
 const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
 const ALL_PROFILES_CACHE_KEY = "pgp:23andme-allUsers";
 const PROFILE_CACHE_PREFIX = "pgp:profile:";
 let lastAllUsersSource = null;
 const lastProfileSourceById = new Map();
+
+function getStorage() {
+    return localforage;
+}
 
 function isCacheWithinMonths(savedAt, months = 3) {
     if (!savedAt) return false;
@@ -23,16 +29,19 @@ function isCacheWithinMonths(savedAt, months = 3) {
 // Helper functions for fetch23andMeParticipants() cache management
 async function cacheParticipantsIfMissing(participants) {
         console.log("cacheParticipantsIfMissing-------------------")
+        console.log(" 1if (!storage) return;-------------------")
 
-    if (!window.localforage) return;
-        console.log(" if (!window.localforage) return;-------------------")
+    const storage = getStorage();
+    if (!storage) return;
+
+        console.log(" 2if (!storage) return;-------------------")
 
     try {
-        const existing = await window.localforage.getItem(ALL_PROFILES_CACHE_KEY);
+        const existing = await storage.getItem(ALL_PROFILES_CACHE_KEY);
         console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY} before write:`, existing ? `found ${existing.length} entries` : "no cache",existing);
         if (existing) return;
 
-        await window.localforage.setItem(ALL_PROFILES_CACHE_KEY, participants);
+        await storage.setItem(ALL_PROFILES_CACHE_KEY, participants);
         console.log(`Saved participants cache: ${ALL_PROFILES_CACHE_KEY}`);
     } catch (error) {
         console.warn(`Failed to write participants cache (${ALL_PROFILES_CACHE_KEY}):`, error);
@@ -43,10 +52,11 @@ async function cacheParticipantsIfMissing(participants) {
 async function getCachedParticipants(limit = 1300) {
     console.log("getCachedParticipants-------------------")
     console.log("Checking local cache for participants...");
-    if (!window.localforage) return null;
+    const storage = getStorage();
+    if (!storage) return null;
 
     try {
-        const cached = await window.localforage.getItem(ALL_PROFILES_CACHE_KEY);
+        const cached = await storage.getItem(ALL_PROFILES_CACHE_KEY);
         console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY}:`, cached ? `found ${cached.length} entries` : "no cache",cached);
         if (!Array.isArray(cached) || cached.length === 0) return null;
         return cached.slice(0, limit);
@@ -213,10 +223,11 @@ async function fetchProfile(id) {
 
 // Helper functions for fetchProfile(id) cache management
 async function getCachedProfile(id) {
-    if (!window.localforage) return null;
+    const storage = getStorage();
+    if (!storage) return null;
 
     try {
-        const cached = await window.localforage.getItem(PROFILE_CACHE_PREFIX + id);
+        const cached = await storage.getItem(PROFILE_CACHE_PREFIX + id);
         if (!cached) return null;
 
         const { savedAt, profile } = cached;
@@ -231,8 +242,9 @@ async function getCachedProfile(id) {
 
 // Helper functions for fetchProfile(id) cache management
 async function setCachedProfile(id, profile) {
-    if (!window.localforage) return;
-    await window.localforage.setItem(PROFILE_CACHE_PREFIX + id, {
+    const storage = getStorage();
+    if (!storage) return;
+    await storage.setItem(PROFILE_CACHE_PREFIX + id, {
         savedAt: new Date().toISOString(),
         profile
     });
