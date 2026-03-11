@@ -165,6 +165,7 @@ Run `npm run build` to generate:
 - Run `npm run start` to start the local proxy/static server on `http://localhost:3000`.
 - Open `http://localhost:3000` in your browser.
 - If you use a separate static server (for example VS Code Live Server), keep the proxy running for API calls to `http://localhost:3000`.
+-  - This allows the application to access external APIs while avoiding CORS restrictions.
 
-## SDK API
+
 
