@@ -65,7 +65,7 @@ get-23andme-data/
 └── README.md                        - Main documentation
 ```
 
-- `src/js/`: browser app modules (`get23_main.js`, `get23_loadProfiles.js`, `get23_loadStats.js`).
+- `src/js/`: browser app modules (`get23_main.js`, `get23_allUsers.js`, `get23_loadStats.js`).
 - `src/js/data/`: reusable data-fetching module (`get23_allUsers.js`).
 - `sdk.js`: public SDK entrypoint (exports the API used by consumers).
 - `src/css/`: app styles (`styles.css`).
