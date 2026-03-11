@@ -68,9 +68,11 @@
 
                 <div id="chart" style="width:700px;height:400px;"></div>
                 <pre id="output"></pre>
-                <!-- <script src="./src/js/get23_loadStats.js"></script> -->
-                <script>
-                    window.onload = loadStats;
+                <script type="module">
+                    window.addEventListener("load", async () => {
+                        const { loadStats } = await import("./src/js/get23_loadStats.js");
+                        await loadStats();
+                    });
                 </script>
 
                 <hr class="my-4" />
@@ -88,7 +90,6 @@
     <!-- Your existing modules -->
     <!-- <script type="module" src="./dist/sdk.mjs"></script> -->
     <script type="module" src="./src/js/get23_main.js"></script>
-    <script  type="module" src="./src/js/get23_loadStats.js"></script>
 
 </body>
 
