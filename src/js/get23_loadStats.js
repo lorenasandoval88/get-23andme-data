@@ -168,3 +168,5 @@ const forceRefreshBtn = document.getElementById("forceRefreshStatsBtn");
 if (forceRefreshBtn) {
     forceRefreshBtn.addEventListener("click", () => loadStats({ forceRefresh: true }));
 }
+
+export { loadStats };
