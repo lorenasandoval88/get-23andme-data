@@ -200,9 +200,11 @@ async function cacheParticipantsIfMissing(participants) {
         console.log("cacheParticipantsIfMissing-------------------");
 
     if (!window.localforage) return;
+        console.log(" if (!window.localforage) return;-------------------");
 
     try {
         const existing = await window.localforage.getItem(ALL_PROFILES_CACHE_KEY);
+        console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY} before write:`, existing ? `found ${existing.length} entries` : "no cache",existing);
         if (existing) return;
 
         await window.localforage.setItem(ALL_PROFILES_CACHE_KEY, participants);
