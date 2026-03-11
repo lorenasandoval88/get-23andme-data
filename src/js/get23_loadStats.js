@@ -68,7 +68,7 @@ async function loadStats(options = {}) {
                 type: "bar"
             }];
             Plotly.newPlot("chart", data, { title: "PGP 23andMe Data Statistics" });
-            return;
+            return cached.stats;
         }
         if (forceRefresh) {
             console.log("Force refresh requested: bypassing cache");
@@ -136,7 +136,7 @@ async function loadStats(options = {}) {
         if (!stats) {
             if (sourceStatusEl) sourceStatusEl.textContent = `Source: ${source}`;
             document.getElementById("output").textContent = "No data found";
-            return;
+            return null;
         }
 
         // Cache the fresh data
@@ -156,9 +156,11 @@ async function loadStats(options = {}) {
         };
 
         Plotly.newPlot("chart", data, layout);
+        return stats;
     } catch (error) {
         if (sourceStatusEl) sourceStatusEl.textContent = "Source: unavailable";
         document.getElementById("output").textContent = `Error: ${error.message}`;
+        return null;
     } finally {
         if (forceRefreshBtn) forceRefreshBtn.disabled = false;
     }
