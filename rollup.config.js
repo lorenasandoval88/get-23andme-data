@@ -20,6 +20,34 @@ export default [
       terser()
     ]
   },
+  // All users data module (ESM bundle)
+  {
+    input: 'src/js/data/get23_allUsers.js',
+    output: {
+      file: 'dist/allUsers.bundle.mjs',
+      format: 'es',
+      sourcemap: true
+    },
+    plugins: [
+      resolve({ browser: true }),
+      commonjs(),
+      json()
+    ]
+  },
+  // Stats module (ESM bundle)
+  {
+    input: 'src/js/get23_loadStats.js',
+    output: {
+      file: 'dist/loadStats.bundle.mjs',
+      format: 'es',
+      sourcemap: true
+    },
+    plugins: [
+      resolve({ browser: true }),
+      commonjs(),
+      json()
+    ]
+  },
   // ESM module
   {
     input: 'sdk.js',

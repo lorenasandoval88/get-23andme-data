@@ -1,11 +1,10 @@
 import {
-    fetch23andMeParticipants,// gets the participant list
+    fetch23andMeParticipants,
     fetchProfile,
     getLastAllUsersSource,
     getLastProfileSource
 } from './data/get23_allUsers.js';
 
-// Render table
 function renderProfilesTable(profiles) {
     const container = document.getElementById('profilesTable');
     if (!container) return;
@@ -32,16 +31,12 @@ function renderProfilesTable(profiles) {
             <tbody>
     `;
 
-    for (const {
-            id,
-            profile
-        } of validProfiles) {
+    for (const { id, profile } of validProfiles) {
         const name = profile.real_name || profile.username || 'N/A';
         const state = profile.state || 'N/A';
         const sex = profile.sex || 'N/A';
         const profileUrl = `https://my.pgp-hms.org/profile/${id}`;
 
-        // Find 23andMe file from profile.files
         const files = profile.files || [];
         const file23andMe = files.find(f =>
             (f.data_type && f.data_type.toLowerCase().includes('23andme')) ||
@@ -61,7 +56,6 @@ function renderProfilesTable(profiles) {
                 <td>${fileLink}</td>
             </tr>
         `;
-        //console.log("file url:", file23andMe ? file23andMe.download_url : 'N/A');
     }
 
     html += '</tbody></table>';
@@ -69,26 +63,21 @@ function renderProfilesTable(profiles) {
 }
 
 async function displayProfiles() {
-    console.log("displayProfiles-------------------")
     const container = document.getElementById('profilesTable');
     const sourceStatusEl = document.getElementById('profilesSourceStatus');
     if (container) container.innerHTML = 'Loading profiles...';
     if (sourceStatusEl) sourceStatusEl.textContent = 'Source: checking...';
-    //console.log("displayProfiles------------------")
+
     try {
         const participants = await fetch23andMeParticipants();
         const participantsSource = getLastAllUsersSource();
-        //pick the first 10 unique IDs to avoid overwhelming the system with too many requests
         const participants_ids = [...new Set(participants.map(p => p.id))].slice(0, 10);
-        //console.log(`Try cache first or else fetch ${participants_ids.length} profiles for:`, participants_ids);
 
         let cachedCount = 0;
         let fetchedCount = 0;
-    const fetchedProfileSources = new Set();
-
+        const fetchedProfileSources = new Set();
 
         const profiles = await Promise.all(
-
             participants_ids.map(async (id) => {
                 try {
                     const profile = await fetchProfile(id);
@@ -114,7 +103,6 @@ async function displayProfiles() {
                 }
             })
         );
-        //console.log(`Using local cache for ${cachedCount} profiles:`, participants_ids);
 
         const source = cachedCount > 0 && fetchedCount === 0 ?
             'cache' :
@@ -125,7 +113,6 @@ async function displayProfiles() {
         const profilesSourceLabel = fetchedProfileSources.size > 0 ? Array.from(fetchedProfileSources).join(", ") : "cache";
         if (sourceStatusEl) sourceStatusEl.textContent = `Source: ${source} (participants: ${participantsSourceLabel}; profiles: ${profilesSourceLabel})`;
 
-        //console.log("Profiles:", profiles);
         renderProfilesTable(profiles);
     } catch (error) {
         if (sourceStatusEl) sourceStatusEl.textContent = 'Source: unavailable';
