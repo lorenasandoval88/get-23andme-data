@@ -1,4 +1,5 @@
 import localforage from "localforage";
+import Plotly from "plotly.js-dist-min";
 
 const CACHE_KEY = "pgp:23andme-stats";
 
