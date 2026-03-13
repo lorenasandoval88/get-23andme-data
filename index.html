@@ -57,6 +57,19 @@
                         href="https://my.pgp-hms.org/public_genetic_data/statistics" target="_blank"
                         rel="noopener noreferrer">Personal Genome Project (PGP)</a></h6>
 
+
+                <hr class="my-3" />
+                <h1 class="mb-3">Try it out in the console:</h1>
+
+                <pre class="bg-light border rounded p-3"><code>try {
+                const personal_genome_sdk = await import("https://lorenasandoval88.github.io/get-23andme-data/dist/sdk.mjs");
+                let users = await  personal_genome_sdk.loadStats();
+                console.log("PGS categories loaded and cached in local storage:", users);
+                } catch (error) {
+                    console.error("Failed to load users:", error);
+                }</code></pre>
+
+
                 <hr class="my-3" />
                 <h1>23andMe Statistics</h1>
                 <div id="sourceStatus" class="small text-muted mb-2">Source: checking...</div>
