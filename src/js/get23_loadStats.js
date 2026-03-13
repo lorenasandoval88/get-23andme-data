@@ -56,6 +56,8 @@ async function loadStats(options = {}) {
     const forceRefresh = options.forceRefresh === true;
     const sourceStatusEl = document.getElementById("sourceStatus");
     const forceRefreshBtn = document.getElementById("forceRefreshStatsBtn");
+    const outputEl = document.getElementById("output");
+    const chartEl = document.getElementById("chart");
     if (sourceStatusEl) sourceStatusEl.textContent = "Source: checking...";
     if (forceRefreshBtn) forceRefreshBtn.disabled = true;
 
@@ -69,14 +71,18 @@ async function loadStats(options = {}) {
         if (cached) {
             //console.log("Using cached stats:", cached);
             if (sourceStatusEl) sourceStatusEl.textContent = `Source: ${cached.source}`;
-            document.getElementById("output").textContent = `${JSON.stringify(cached.stats, null, 2)}\n\nSource: ${cached.source}`;
+            if (outputEl) {
+                outputEl.textContent = `${JSON.stringify(cached.stats, null, 2)}\n\nSource: ${cached.source}`;
+            }
             
             const data = [{
                 x: ["Datasets", "Participants", "Positions"],
                 y: [cached.stats.datasets, cached.stats.participants, cached.stats.positions],
                 type: "bar"
             }];
-            Plotly.newPlot("chart", data, { title: "PGP 23andMe Data Statistics" });
+            if (chartEl) {
+                Plotly.newPlot("chart", data, { title: "PGP 23andMe Data Statistics" });
+            }
             return cached.stats;
         }
         if (forceRefresh) {
@@ -144,7 +150,7 @@ async function loadStats(options = {}) {
 
         if (!stats) {
             if (sourceStatusEl) sourceStatusEl.textContent = `Source: ${source}`;
-            document.getElementById("output").textContent = "No data found";
+            if (outputEl) outputEl.textContent = "No data found";
             return null;
         }
 
@@ -152,7 +158,9 @@ async function loadStats(options = {}) {
         await setCachedStats(stats, source);
 
         if (sourceStatusEl) sourceStatusEl.textContent = `Source: ${source}`;
-        document.getElementById("output").textContent = `${JSON.stringify(stats, null, 2)}\n\nSource: ${source}`;
+        if (outputEl) {
+            outputEl.textContent = `${JSON.stringify(stats, null, 2)}\n\nSource: ${source}`;
+        }
 
         const data = [{
             x: ["Datasets", "Participants", "Positions"],
@@ -164,11 +172,13 @@ async function loadStats(options = {}) {
             title: "PGP 23andMe Data Statistics"
         };
 
-        Plotly.newPlot("chart", data, layout);
+        if (chartEl) {
+            Plotly.newPlot("chart", data, layout);
+        }
         return stats;
     } catch (error) {
         if (sourceStatusEl) sourceStatusEl.textContent = "Source: unavailable";
-        document.getElementById("output").textContent = `Error: ${error.message}`;
+        if (outputEl) outputEl.textContent = `Error: ${error.message}`;
         return null;
     } finally {
         if (forceRefreshBtn) forceRefreshBtn.disabled = false;
