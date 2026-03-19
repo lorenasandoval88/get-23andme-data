@@ -89,6 +89,7 @@ async function load23andMeFile(path) {
 	if (!buffer) {
 		throw new Error(`All proxy candidates failed for ${path}: ${lastError?.message}`);
 	}
+        console.log(`3 et23_loadTxts.js: Loaded buffer`, buffer);
 
 	// Unzip and parse the 23andMe text file
 	const zip = await JSZip.loadAsync(buffer);
