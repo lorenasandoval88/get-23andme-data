@@ -50,18 +50,40 @@ async function load23andMeFile(path) {
 	}
 	
 	// Remote PGP URLs that return ZIP files
-	const response = await fetch(path);
-	if (!response.ok) {
-		throw new Error(`Failed to load ${path}: ${response.status}`);
-	}
-	
-	// Download ZIP from redirected URL
-	const zipRes = await fetch(response.url);
-	if (!zipRes.ok) {
-		throw new Error(`Failed to download ZIP: ${zipRes.status}`);
+	const WORKER_BASE = "https://pgp-proxy.your-worker.workers.dev/?url=";
+	const target = path;
+	const candidates = [
+		// ✅ your Cloudflare Worker (put near the top)
+		{ name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(target)}` },
+		{ name: "local-proxy", url: "http://localhost:3000/pgp-stats" },
+		// { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
+		{ name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
+		{ name: "corsproxy", url: `https://corsproxy.io/?${target}` },
+		{ name: "github-pages-proxy", url: "https://lorenasandoval88.github.io/get-23andme-data/pgp-stats" }
+	];
+
+	let buffer = null;
+	let lastError = null;
+
+	for (const candidate of candidates) {
+		try {
+			console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
+			const response = await fetch(candidate.url);
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
+			buffer = await response.arrayBuffer();
+			console.log(`get23_loadTxts.js: Success with ${candidate.name}`);
+			break;
+		} catch (err) {
+			console.warn(`get23_loadTxts.js: ${candidate.name} failed: ${err.message}`);
+			lastError = err;
+		}
 	}
 
-	const buffer = await zipRes.arrayBuffer();
+	if (!buffer) {
+		throw new Error(`All proxy candidates failed for ${path}: ${lastError?.message}`);
+	}
 
 	// Unzip and parse the 23andMe text file
 	const zip = await JSZip.loadAsync(buffer);
