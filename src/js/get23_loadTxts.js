@@ -66,9 +66,12 @@ async function load23andMeFile(path) {
 	let lastError = null;
 
 	for (const candidate of candidates) {
+                    console.log("candidate.url",candidate.url)
+
 		try {
 			console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
 			const response = await fetch(candidate.url);
+            console.log(`get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`);
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
