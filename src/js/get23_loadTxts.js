@@ -34,106 +34,221 @@ async function parse23Txt(txt, url) {
  * @param {string} path - Path to the file (local .txt or remote PGP URL)
  * @returns {Promise<Object>} Parsed genome data
  */
+// async function load23andMeFile(path) {
+//     console.log(`get23_loadTxts.js(load23andMeFile()): Loading 23andMe file from: ${path}`);
+// 	const isRemote = /^https?:\/\//.test(path);
+// 	const isZipUrl = path.includes('pgp-hms.org') || path.endsWith('.zip');
+	
+// 	// Local .txt files - just fetch and parse directly
+// 	if (!isRemote || (!isZipUrl && path.endsWith('.txt'))) {
+// 		const response = await fetch(path);
+// 		if (!response.ok) {
+// 			throw new Error(`Failed to load ${path}: ${response.status}`);
+// 		}
+// 		const txt = await response.text();
+// 		return parse23Txt(txt, path);
+// 	}
+	
+// 	// Remote PGP URLs that return ZIP files
+// 	const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
+// 	const target = path;
+// 	const candidates = [
+// 		// ✅ your Cloudflare Worker (put near the top)
+// 		{ name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(target)}` },
+// 		{ name: "local-proxy", url: "http://localhost:3000/pgp-stats" },
+// 		// { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
+// 		{ name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
+// 		{ name: "corsproxy", url: `https://corsproxy.io/?${target}` },
+// 		{ name: "github-pages-proxy", url: "https://lorenasandoval88.github.io/get-23andme-data/pgp-stats" }
+// 	];
+
+// 	let buffer = null;
+// 	let lastError = null;
+
+// 	for (const candidate of candidates) {
+//                     console.log("candidate.url",candidate.url)
+
+// 		try {
+// 			console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
+// 			const response = await fetch(candidate.url);
+//             console.log(`get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`,response);
+// 			if (!response.ok) {
+// 				throw new Error(`HTTP ${response.status}`);
+// 			}
+// 			buffer = await response.arrayBuffer();
+// 			console.log(`get23_loadTxts.js: Success with ${candidate.name}`);
+//             console.log(`get23_loadTxts.js: Loaded ${buffer.byteLength} bytes from ${candidate.name}`, buffer);
+// 			break;
+// 		} catch (err) {
+// 			console.warn(`get23_loadTxts.js: ${candidate.name} failed: ${err.message}`);
+// 			lastError = err;
+// 		}
+// 	}
+//         console.log(`2 et23_loadTxts.js: Loaded buffer`, buffer);
+
+// 	if (!buffer) {
+// 		throw new Error(`All proxy candidates failed for ${path}: ${lastError?.message}`);
+// 	}
+//         console.log(`3 et23_loadTxts.js: Loaded buffer`, buffer);
+
+// 	// Unzip and parse the 23andMe text file
+// 	console.log(`get23_loadTxts.js: About to call JSZip.loadAsync, buffer size: ${buffer.byteLength}`);
+	
+// 	// Check if buffer is actually a ZIP file (starts with PK)
+// 	const peek = new Uint8Array(buffer.slice(0, 4));
+// 	console.log("First 4 bytes:", peek, "Expected ZIP signature: [80, 75, 3, 4]");
+// 	if (peek[0] !== 80 || peek[1] !== 75) {
+// 		// Not a ZIP - might be HTML error or text
+// 		const text = new TextDecoder().decode(buffer.slice(0, 500));
+// 		console.error("Buffer is not a ZIP file. First 500 chars:", text);
+// 		throw new Error("Response is not a ZIP file");
+// 	}
+	
+// 	let zip;
+// 	try {
+// 		zip = await JSZip.loadAsync(buffer);
+// 	} catch (zipErr) {
+// 		console.error(`get23_loadTxts.js: JSZip.loadAsync failed:`, zipErr);
+// 		throw new Error(`Failed to unzip: ${zipErr.message}`);
+// 	}
+// console.log(`get23_loadTxts.js: ZIP file loaded with ${Object.keys(zip.files).length} entries`, Object.keys(zip.files));
+// 	// Find genotype file
+// 	let targetFile = null;
+// 	for (const name of Object.keys(zip.files)) {
+// 		const file = zip.files[name];
+// 		if (!file.dir && (
+// 			name.endsWith(".txt") ||
+// 			name.includes("23andme") ||
+// 			name.toLowerCase().includes("genome")
+// 		)) {
+// 			targetFile = file;
+// 			break;
+// 		}
+// 	}
+
+// 	if (!targetFile) {
+// 		throw new Error("No genotype file found in ZIP");
+// 	}
+
+// 	// Extract text and parse
+// 	const txt = await targetFile.async("string");
+// 	return parse23Txt(txt, path);
+// }
+
 async function load23andMeFile(path) {
-    console.log(`get23_loadTxts.js(load23andMeFile()): Loading 23andMe file from: ${path}`);
-	const isRemote = /^https?:\/\//.test(path);
-	const isZipUrl = path.includes('pgp-hms.org') || path.endsWith('.zip');
-	
-	// Local .txt files - just fetch and parse directly
-	if (!isRemote || (!isZipUrl && path.endsWith('.txt'))) {
-		const response = await fetch(path);
-		if (!response.ok) {
-			throw new Error(`Failed to load ${path}: ${response.status}`);
-		}
-		const txt = await response.text();
-		return parse23Txt(txt, path);
-	}
-	
-	// Remote PGP URLs that return ZIP files
-	const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
-	const target = path;
-	const candidates = [
-		// ✅ your Cloudflare Worker (put near the top)
-		{ name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(target)}` },
-		{ name: "local-proxy", url: "http://localhost:3000/pgp-stats" },
-		// { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
-		{ name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
-		{ name: "corsproxy", url: `https://corsproxy.io/?${target}` },
-		{ name: "github-pages-proxy", url: "https://lorenasandoval88.github.io/get-23andme-data/pgp-stats" }
-	];
+  console.log(`get23_loadTxts.js(load23andMeFile()): Loading 23andMe file from: ${path}`);
 
-	let buffer = null;
-	let lastError = null;
+  const isRemote = /^https?:\/\//.test(path);
+  const isTxtFile = path.toLowerCase().endsWith(".txt");
+  const isZipLike = path.toLowerCase().includes("pgp-hms.org") || path.toLowerCase().endsWith(".zip");
 
-	for (const candidate of candidates) {
-                    console.log("candidate.url",candidate.url)
+  // Local or direct .txt files
+  if (!isRemote || (isTxtFile && !isZipLike)) {
+    const response = await fetch(path);
+    if (!response.ok) {
+      throw new Error(`Failed to load ${path}: ${response.status}`);
+    }
 
-		try {
-			console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
-			const response = await fetch(candidate.url);
-            console.log(`get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`,response);
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}`);
-			}
-			buffer = await response.arrayBuffer();
-			console.log(`get23_loadTxts.js: Success with ${candidate.name}`);
-            console.log(`get23_loadTxts.js: Loaded ${buffer.byteLength} bytes from ${candidate.name}`, buffer);
-			break;
-		} catch (err) {
-			console.warn(`get23_loadTxts.js: ${candidate.name} failed: ${err.message}`);
-			lastError = err;
-		}
-	}
-        console.log(`2 et23_loadTxts.js: Loaded buffer`, buffer);
+    const txt = await response.text();
+    return parse23Txt(txt, path);
+  }
 
-	if (!buffer) {
-		throw new Error(`All proxy candidates failed for ${path}: ${lastError?.message}`);
-	}
-        console.log(`3 et23_loadTxts.js: Loaded buffer`, buffer);
+  // Remote PGP / ZIP URLs
+  const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
+  const target = path;
 
-	// Unzip and parse the 23andMe text file
-	console.log(`get23_loadTxts.js: About to call JSZip.loadAsync, buffer size: ${buffer.byteLength}`);
-	
-	// Check if buffer is actually a ZIP file (starts with PK)
-	const peek = new Uint8Array(buffer.slice(0, 4));
-	console.log("First 4 bytes:", peek, "Expected ZIP signature: [80, 75, 3, 4]");
-	if (peek[0] !== 80 || peek[1] !== 75) {
-		// Not a ZIP - might be HTML error or text
-		const text = new TextDecoder().decode(buffer.slice(0, 500));
-		console.error("Buffer is not a ZIP file. First 500 chars:", text);
-		throw new Error("Response is not a ZIP file");
-	}
-	
-	let zip;
-	try {
-		zip = await JSZip.loadAsync(buffer);
-	} catch (zipErr) {
-		console.error(`get23_loadTxts.js: JSZip.loadAsync failed:`, zipErr);
-		throw new Error(`Failed to unzip: ${zipErr.message}`);
-	}
-console.log(`get23_loadTxts.js: ZIP file loaded with ${Object.keys(zip.files).length} entries`, Object.keys(zip.files));
-	// Find genotype file
-	let targetFile = null;
-	for (const name of Object.keys(zip.files)) {
-		const file = zip.files[name];
-		if (!file.dir && (
-			name.endsWith(".txt") ||
-			name.includes("23andme") ||
-			name.toLowerCase().includes("genome")
-		)) {
-			targetFile = file;
-			break;
-		}
-	}
+  const candidates = [
+    { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(target)}` },
+    { name: "local-proxy", url: "http://localhost:3000/pgp-stats" },
+    { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
+    { name: "corsproxy", url: `https://corsproxy.io/?${target}` },
+    { name: "github-pages-proxy", url: "https://lorenasandoval88.github.io/get-23andme-data/pgp-stats" }
+  ];
 
-	if (!targetFile) {
-		throw new Error("No genotype file found in ZIP");
-	}
+  let buffer = null;
+  let lastError = null;
+  let successSource = null;
 
-	// Extract text and parse
-	const txt = await targetFile.async("string");
-	return parse23Txt(txt, path);
+  for (const candidate of candidates) {
+    console.log("candidate.url", candidate.url);
+
+    try {
+      console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
+      const response = await fetch(candidate.url);
+
+      console.log(
+        `get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`,
+        response
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      console.log(`get23_loadTxts.js: content-type from ${candidate.name}: ${contentType}`);
+
+      buffer = await response.arrayBuffer();
+
+      if (!buffer || buffer.byteLength === 0) {
+        throw new Error("Empty response body");
+      }
+
+      console.log(`get23_loadTxts.js: Success with ${candidate.name}`);
+      console.log(`get23_loadTxts.js: Loaded ${buffer.byteLength} bytes from ${candidate.name}`, buffer);
+
+      successSource = candidate.name;
+      break;
+    } catch (err) {
+      console.warn(`get23_loadTxts.js: ${candidate.name} failed: ${err.message}`);
+      lastError = err;
+    }
+  }
+
+  console.log(`get23_loadTxts.js: Loaded buffer`, buffer);
+
+  if (!buffer) {
+    throw new Error(`All proxy candidates failed for ${path}: ${lastError?.message}`);
+  }
+
+  // Optional sanity check for ZIP magic bytes: PK
+  const bytes = new Uint8Array(buffer);
+  const isZipBuffer = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+
+  if (!isZipBuffer) {
+    const preview = new TextDecoder("utf-8").decode(bytes.slice(0, 300));
+    console.error("get23_loadTxts.js: Response is not a ZIP file. Preview:", preview);
+    throw new Error(`Response from ${successSource} is not a ZIP archive`);
+  }
+
+  // Unzip and parse the 23andMe text file
+  console.log(`get23_loadTxts.js: About to call JSZip.loadAsync, buffer size: ${buffer.byteLength}`);
+  const zip = await JSZip.loadAsync(buffer);
+
+  const zipNames = Object.keys(zip.files);
+  console.log("get23_loadTxts.js: ZIP entries:", zipNames);
+
+  const targetFile = zipNames
+    .map(name => zip.files[name])
+    .find(file =>
+      !file.dir &&
+      file.name.toLowerCase().endsWith(".txt")
+    );
+
+  if (!targetFile) {
+    throw new Error(`No .txt file found inside ZIP from ${path}`);
+  }
+
+  console.log(`get23_loadTxts.js: Extracting file from ZIP: ${targetFile.name}`);
+
+  const txt = await targetFile.async("string");
+
+  if (!txt || !txt.trim()) {
+    throw new Error(`Extracted text file is empty: ${targetFile.name}`);
+  }
+
+  // Use whichever parser is correct for your PGP 23andMe format
+  return parsePgp23(txt, targetFile.name);
 }
-
 
 export { JSZip,load23andMeFile, parse23Txt };
