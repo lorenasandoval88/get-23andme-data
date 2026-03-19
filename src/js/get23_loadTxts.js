@@ -76,7 +76,6 @@ async function load23andMeFile(path) {
 				throw new Error(`HTTP ${response.status}`);
 			}
 			buffer = await response.arrayBuffer();
-
 			console.log(`get23_loadTxts.js: Success with ${candidate.name}`);
             console.log(`get23_loadTxts.js: Loaded ${buffer.byteLength} bytes from ${candidate.name}`, buffer);
 			break;
@@ -85,6 +84,7 @@ async function load23andMeFile(path) {
 			lastError = err;
 		}
 	}
+        console.log(`2 et23_loadTxts.js: Loaded buffer`, buffer);
 
 	if (!buffer) {
 		throw new Error(`All proxy candidates failed for ${path}: ${lastError?.message}`);
