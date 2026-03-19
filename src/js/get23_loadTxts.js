@@ -73,7 +73,9 @@ async function load23andMeFile(path) {
 				throw new Error(`HTTP ${response.status}`);
 			}
 			buffer = await response.arrayBuffer();
+
 			console.log(`get23_loadTxts.js: Success with ${candidate.name}`);
+            console.log(`get23_loadTxts.js: Loaded ${buffer.byteLength} bytes from ${candidate.name}`, buffer);
 			break;
 		} catch (err) {
 			console.warn(`get23_loadTxts.js: ${candidate.name} failed: ${err.message}`);
@@ -87,7 +89,7 @@ async function load23andMeFile(path) {
 
 	// Unzip and parse the 23andMe text file
 	const zip = await JSZip.loadAsync(buffer);
-
+console.log(`get23_loadTxts.js: ZIP file loaded with ${Object.keys(zip.files).length} entries`, Object.keys(zip.files));
 	// Find genotype file
 	let targetFile = null;
 	for (const name of Object.keys(zip.files)) {
