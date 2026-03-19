@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "express": "^4.21.2",
+    "jszip": "^3.10.1",
     "localforage": "^1.10.0",
     "plotly.js-dist-min": "^2.35.3"
   }

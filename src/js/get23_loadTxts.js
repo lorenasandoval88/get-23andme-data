@@ -1,5 +1,4 @@
-// import JSZip from 'https://cdnjs.cloudflare.com/ajax/libs/JSZip/3.10.1/JSZip.esm.mjs'
-import JSZip from "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm";
+import JSZip from "jszip";
 
 /**
  * Parse a 23andMe genome text file into structured data.
@@ -36,6 +35,7 @@ async function parse23Txt(txt, url) {
  * @returns {Promise<Object>} Parsed genome data
  */
 async function load23andMeFile(path) {
+    console.log(`get23_loadTxts.js(load23andMeFile()): Loading 23andMe file from: ${path}`);
 	const isRemote = /^https?:\/\//.test(path);
 	const isZipUrl = path.includes('pgp-hms.org') || path.endsWith('.zip');
 	
@@ -90,4 +90,4 @@ async function load23andMeFile(path) {
 }
 
 
-export { load23andMeFile, parse23Txt };
+export { JSZip,load23andMeFile, parse23Txt };
