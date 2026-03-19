@@ -92,7 +92,25 @@ async function load23andMeFile(path) {
         console.log(`3 et23_loadTxts.js: Loaded buffer`, buffer);
 
 	// Unzip and parse the 23andMe text file
-	const zip = await JSZip.loadAsync(buffer);
+	console.log(`get23_loadTxts.js: About to call JSZip.loadAsync, buffer size: ${buffer.byteLength}`);
+	
+	// Check if buffer is actually a ZIP file (starts with PK)
+	const peek = new Uint8Array(buffer.slice(0, 4));
+	console.log("First 4 bytes:", peek, "Expected ZIP signature: [80, 75, 3, 4]");
+	if (peek[0] !== 80 || peek[1] !== 75) {
+		// Not a ZIP - might be HTML error or text
+		const text = new TextDecoder().decode(buffer.slice(0, 500));
+		console.error("Buffer is not a ZIP file. First 500 chars:", text);
+		throw new Error("Response is not a ZIP file");
+	}
+	
+	let zip;
+	try {
+		zip = await JSZip.loadAsync(buffer);
+	} catch (zipErr) {
+		console.error(`get23_loadTxts.js: JSZip.loadAsync failed:`, zipErr);
+		throw new Error(`Failed to unzip: ${zipErr.message}`);
+	}
 console.log(`get23_loadTxts.js: ZIP file loaded with ${Object.keys(zip.files).length} entries`, Object.keys(zip.files));
 	// Find genotype file
 	let targetFile = null;
