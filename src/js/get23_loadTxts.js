@@ -46,7 +46,7 @@ async function load23andMeFile(path) {
 			throw new Error(`Failed to load ${path}: ${response.status}`);
 		}
 		const txt = await response.text();
-		return parsePgp23(txt, path);
+		return parse23Txt(txt, path);
 	}
 	
 	// Remote PGP URLs that return ZIP files
@@ -86,7 +86,7 @@ async function load23andMeFile(path) {
 
 	// Extract text and parse
 	const txt = await targetFile.async("string");
-	return parsePgp23(txt, path);
+	return parse23Txt(txt, path);
 }
 
 
