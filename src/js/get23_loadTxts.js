@@ -50,7 +50,7 @@ async function load23andMeFile(path) {
 	}
 	
 	// Remote PGP URLs that return ZIP files
-	const WORKER_BASE = "https://pgp-proxy.your-worker.workers.dev/?url=";
+	const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
 	const target = path;
 	const candidates = [
 		// ✅ your Cloudflare Worker (put near the top)
