@@ -71,7 +71,7 @@ async function load23andMeFile(path) {
 		try {
 			console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
 			const response = await fetch(candidate.url);
-            console.log(`get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`);
+            console.log(`get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`,response);
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
