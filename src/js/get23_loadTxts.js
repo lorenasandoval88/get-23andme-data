@@ -1,4 +1,63 @@
+import localforage from "localforage";
+const MAX_GET23_CACHE_BYTES = 300 * 1024 * 1024;
+const GET23_KEY_PREFIX = "Genome:id-";
+
 import JSZip from "jszip";
+
+// evicts in this order:First: cached pgs:id-* entries whose IDs are not in current ids.
+// Then (only if still over limit): entries whose IDs are in current ids.
+async function limitStorage(ids = []){
+    const entries = [];
+    let totalBytes = 0;
+    const requestedIds = new Set((ids || []).map(id => String(id)));
+
+    await localforage.iterate((value, key) => {
+        if (!key.startsWith(GET23_KEY_PREFIX)) {
+            return;
+        }
+        const entryBytes = getByteSize({ key, value });
+        const createdAt = Number(value?.cachedAt) || 0;
+        const id = key.slice(GET23_KEY_PREFIX.length);
+
+        entries.push({ key, id, entryBytes, createdAt });
+        totalBytes += entryBytes;
+        //console.log(`Cached pgs entries: ${key}, Size: ${(entryBytes / 1024 / 1024).toFixed(2)} MB`);
+    });
+
+    if (totalBytes < MAX_GET23_CACHE_BYTES) {
+        console.log(`Cache limit: ${(MAX_GET23_CACHE_BYTES / 1024 / 1024).toFixed(0)} MB. Current usage: ${(totalBytes / 1024 / 1024).toFixed(2)} MB. No eviction needed.`);
+        return;
+    }
+
+    const notRequestedEntries = entries
+        .filter(entry => !requestedIds.has(entry.id))
+        .sort((a, b) => a.createdAt - b.createdAt);
+
+    const requestedEntries = entries
+        .filter(entry => requestedIds.has(entry.id))
+        .sort((a, b) => a.createdAt - b.createdAt);
+
+    const evictionOrder = [...notRequestedEntries, ...requestedEntries];
+
+    for (const entry of evictionOrder) {
+        if (totalBytes < MAX_GET23_CACHE_BYTES) {
+            break;
+        }
+        await localforage.removeItem(entry.key);
+        totalBytes -= entry.entryBytes;
+    }
+    console.log(`GET23 Cache after eviction: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
+
+}
+
+function getByteSize(value) {
+    const encoded = JSON.stringify(value) ?? "";
+    if (typeof TextEncoder !== "undefined") {
+        return new TextEncoder().encode(encoded).length;
+    }
+    return encoded.length * 2;
+}
+
 
 /**
  * Parse a 23andMe genome text file into structured data.
@@ -32,12 +91,50 @@ async function parse23Txt(txt, url) {
 /**
  * Load and parse a local 23andMe file.
  * @param {string} path - Path to the file (local .txt or remote PGP URL)
+ * @param {string} [id] - Optional ID for caching (extracted from path if not provided)
  * @returns {Promise<Object>} Parsed genome data
  */
 
 
-async function load23andMeFile(path) {
+async function load23andMeFile(path, id = null) {
   console.log(`get23_loadTxts.js: Starting to load ${path}...`);
+
+  // Extract ID from path if not provided (e.g., from PGP URL)
+  if (!id) {
+    const idMatch = path.match(/hu[A-Z0-9]+/i) || path.match(/\/([^\/]+)\/?$/);
+    id = idMatch ? idMatch[0] : path;
+  }
+
+  const cacheKey = GET23_KEY_PREFIX + id;
+
+  // Check localforage for cached data
+  try {
+    const cached = await localforage.getItem(cacheKey);
+    if (cached && cached.data) {
+      console.log(`get23_loadTxts.js: Cache hit for ${cacheKey}`);
+      return cached.data;
+    }
+  } catch (err) {
+    console.warn(`get23_loadTxts.js: Cache read failed for ${cacheKey}:`, err);
+  }
+
+  console.log(`get23_loadTxts.js: Cache miss for ${cacheKey}, fetching...`);
+
+  // Helper to cache and return parsed data
+  async function cacheAndReturn(parsedData) {
+    try {
+      await localforage.setItem(cacheKey, {
+        data: parsedData,
+        cachedAt: Date.now()
+      });
+      console.log(`get23_loadTxts.js: Cached data for ${cacheKey}`);
+      // Enforce storage limit
+      await limitStorage([id]);
+    } catch (err) {
+      console.warn(`get23_loadTxts.js: Failed to cache ${cacheKey}:`, err);
+    }
+    return parsedData;
+  }
 
   const isRemote = /^https?:\/\//.test(path);
   const isTxtFile = path.toLowerCase().endsWith(".txt");
@@ -53,7 +150,7 @@ async function load23andMeFile(path) {
     }
 
     const txt = await response.text();
-    return parse23Txt(txt, path);
+    return cacheAndReturn(await parse23Txt(txt, path));
   }
 
   // Remote PGP / ZIP URLs
@@ -132,7 +229,7 @@ async function load23andMeFile(path) {
     }
 
     console.log(`get23_loadTxts.js: Loaded direct TXT from ${successSource}`);
-    return parse23Txt(txt, finalUrl);
+    return cacheAndReturn(await parse23Txt(txt, finalUrl));
   }
 
   // 2) Direct ZIP
@@ -175,7 +272,7 @@ async function load23andMeFile(path) {
     if (!txt || !txt.trim()) {
       throw new Error(`Extracted text file is empty: ${targetFile.name}`);
     }
-    return parse23Txt(txt, targetFile.name);
+    return cacheAndReturn(await parse23Txt(txt, targetFile.name));
   }
 
   // 3) Directory listing / collection root
@@ -219,7 +316,7 @@ async function load23andMeFile(path) {
         throw new Error(`Directory TXT file is empty: ${resolvedFileUrl}`);
       }
 
-      return parse23Txt(txt, resolvedFileUrl);
+      return cacheAndReturn(await parse23Txt(txt, resolvedFileUrl));
     }
 
     if (resolvedFileUrl.toLowerCase().endsWith(".zip")) {
@@ -254,11 +351,11 @@ async function load23andMeFile(path) {
       if (!txt || !txt.trim()) {
         throw new Error(`Extracted nested ZIP text file is empty: ${targetFile.name}`);
       }
-      return parse23Txt(txt, targetFile.name);
+      return cacheAndReturn(await parse23Txt(txt, targetFile.name));
     }
     throw new Error(`Unsupported file type found in directory: ${resolvedFileUrl}`);
   }
   throw new Error(`Unsupported final URL type from ${successSource}: ${finalUrl}`);
 }
 
-export { JSZip,load23andMeFile, parse23Txt };
+export { JSZip, load23andMeFile, parse23Txt, limitStorage, GET23_KEY_PREFIX };
