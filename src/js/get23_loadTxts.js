@@ -34,109 +34,10 @@ async function parse23Txt(txt, url) {
  * @param {string} path - Path to the file (local .txt or remote PGP URL)
  * @returns {Promise<Object>} Parsed genome data
  */
-// async function load23andMeFile(path) {
-//     console.log(`get23_loadTxts.js(load23andMeFile()): Loading 23andMe file from: ${path}`);
-// 	const isRemote = /^https?:\/\//.test(path);
-// 	const isZipUrl = path.includes('pgp-hms.org') || path.endsWith('.zip');
-	
-// 	// Local .txt files - just fetch and parse directly
-// 	if (!isRemote || (!isZipUrl && path.endsWith('.txt'))) {
-// 		const response = await fetch(path);
-// 		if (!response.ok) {
-// 			throw new Error(`Failed to load ${path}: ${response.status}`);
-// 		}
-// 		const txt = await response.text();
-// 		return parse23Txt(txt, path);
-// 	}
-	
-// 	// Remote PGP URLs that return ZIP files
-// 	const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
-// 	const target = path;
-// 	const candidates = [
-// 		// ✅ your Cloudflare Worker (put near the top)
-// 		{ name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(target)}` },
-// 		{ name: "local-proxy", url: "http://localhost:3000/pgp-stats" },
-// 		// { name: "powershell-proxy", url: "http://localhost:3000/pgp-stats" },
-// 		{ name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
-// 		{ name: "corsproxy", url: `https://corsproxy.io/?${target}` },
-// 		{ name: "github-pages-proxy", url: "https://lorenasandoval88.github.io/get-23andme-data/pgp-stats" }
-// 	];
 
-// 	let buffer = null;
-// 	let lastError = null;
-
-// 	for (const candidate of candidates) {
-//                     console.log("candidate.url",candidate.url)
-
-// 		try {
-// 			console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
-// 			const response = await fetch(candidate.url);
-//             console.log(`get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`,response);
-// 			if (!response.ok) {
-// 				throw new Error(`HTTP ${response.status}`);
-// 			}
-// 			buffer = await response.arrayBuffer();
-// 			console.log(`get23_loadTxts.js: Success with ${candidate.name}`);
-//             console.log(`get23_loadTxts.js: Loaded ${buffer.byteLength} bytes from ${candidate.name}`, buffer);
-// 			break;
-// 		} catch (err) {
-// 			console.warn(`get23_loadTxts.js: ${candidate.name} failed: ${err.message}`);
-// 			lastError = err;
-// 		}
-// 	}
-//         console.log(`2 et23_loadTxts.js: Loaded buffer`, buffer);
-
-// 	if (!buffer) {
-// 		throw new Error(`All proxy candidates failed for ${path}: ${lastError?.message}`);
-// 	}
-//         console.log(`3 et23_loadTxts.js: Loaded buffer`, buffer);
-
-// 	// Unzip and parse the 23andMe text file
-// 	console.log(`get23_loadTxts.js: About to call JSZip.loadAsync, buffer size: ${buffer.byteLength}`);
-	
-// 	// Check if buffer is actually a ZIP file (starts with PK)
-// 	const peek = new Uint8Array(buffer.slice(0, 4));
-// 	console.log("First 4 bytes:", peek, "Expected ZIP signature: [80, 75, 3, 4]");
-// 	if (peek[0] !== 80 || peek[1] !== 75) {
-// 		// Not a ZIP - might be HTML error or text
-// 		const text = new TextDecoder().decode(buffer.slice(0, 500));
-// 		console.error("Buffer is not a ZIP file. First 500 chars:", text);
-// 		throw new Error("Response is not a ZIP file");
-// 	}
-	
-// 	let zip;
-// 	try {
-// 		zip = await JSZip.loadAsync(buffer);
-// 	} catch (zipErr) {
-// 		console.error(`get23_loadTxts.js: JSZip.loadAsync failed:`, zipErr);
-// 		throw new Error(`Failed to unzip: ${zipErr.message}`);
-// 	}
-// console.log(`get23_loadTxts.js: ZIP file loaded with ${Object.keys(zip.files).length} entries`, Object.keys(zip.files));
-// 	// Find genotype file
-// 	let targetFile = null;
-// 	for (const name of Object.keys(zip.files)) {
-// 		const file = zip.files[name];
-// 		if (!file.dir && (
-// 			name.endsWith(".txt") ||
-// 			name.includes("23andme") ||
-// 			name.toLowerCase().includes("genome")
-// 		)) {
-// 			targetFile = file;
-// 			break;
-// 		}
-// 	}
-
-// 	if (!targetFile) {
-// 		throw new Error("No genotype file found in ZIP");
-// 	}
-
-// 	// Extract text and parse
-// 	const txt = await targetFile.async("string");
-// 	return parse23Txt(txt, path);
-// }
 
 async function load23andMeFile(path) {
-  console.log(`get23_loadTxts.js(load23andMeFile()): Loading 23andMe file from: ${path}`);
+  console.log(`get23_loadTxts.js: Starting to load ${path}...`);
 
   const isRemote = /^https?:\/\//.test(path);
   const isTxtFile = path.toLowerCase().endsWith(".txt");
@@ -174,14 +75,12 @@ async function load23andMeFile(path) {
   let lastError = null;
 
   for (const candidate of candidates) {
-    console.log("candidate.url", candidate.url);
-
     try {
-      console.log(`get23_loadTxts.js: Trying ${candidate.name}...`);
+      console.log(` Trying ${candidate.name}...from url ${candidate.url}`);
       const response = await fetch(candidate.url);
 
       console.log(
-        `get23_loadTxts.js: Received response from ${candidate.name}: HTTP ${response.status}`,
+        `Received response from ${candidate.name}: HTTP ${response.status}`,
         response
       );
 
@@ -195,8 +94,8 @@ async function load23andMeFile(path) {
         response.headers.get("X-Final-URL") ||
         response.url;
 
-      console.log(`get23_loadTxts.js: content-type from ${candidate.name}: ${contentType}`);
-      console.log(`get23_loadTxts.js: finalUrl from ${candidate.name}: ${exposedFinalUrl}`);
+    //   console.log(`content-type from ${candidate.name}: ${contentType}`);
+      console.log(`finalUrl from ${candidate.name}: ${exposedFinalUrl}`);
 
       // 👇 get header FIRST
        finalResponse = response;
@@ -204,7 +103,7 @@ async function load23andMeFile(path) {
       successSource = candidate.name;
       break;
     } catch (err) {
-      console.warn(`get23_loadTxts.js: ${candidate.name} failed: ${err.message}`);
+      console.warn(` ${candidate.name} failed: ${err.message}`);
       lastError = err;
     }
   }
@@ -276,7 +175,6 @@ async function load23andMeFile(path) {
     if (!txt || !txt.trim()) {
       throw new Error(`Extracted text file is empty: ${targetFile.name}`);
     }
-console.log("paruser txt:",txt.slice(0,200))
     return parse23Txt(txt, targetFile.name);
   }
 
