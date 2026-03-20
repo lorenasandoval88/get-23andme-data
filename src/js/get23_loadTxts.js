@@ -233,7 +233,7 @@ async function load23andMeFile(path) {
     }
 
     console.log(`get23_loadTxts.js: Loaded direct TXT from ${successSource}`);
-    return parsePgp23(txt, finalUrl);
+    return parse23Txt(txt, finalUrl);
   }
 
   // 2) Direct ZIP
@@ -276,8 +276,8 @@ async function load23andMeFile(path) {
     if (!txt || !txt.trim()) {
       throw new Error(`Extracted text file is empty: ${targetFile.name}`);
     }
-
-    return parsePgp23(txt, targetFile.name);
+console.log("paruser txt:",txt.slice(0,200))
+    return parse23Txt(txt, targetFile.name);
   }
 
   // 3) Directory listing / collection root
@@ -321,7 +321,7 @@ async function load23andMeFile(path) {
         throw new Error(`Directory TXT file is empty: ${resolvedFileUrl}`);
       }
 
-      return parsePgp23(txt, resolvedFileUrl);
+      return parse23Txt(txt, resolvedFileUrl);
     }
 
     if (resolvedFileUrl.toLowerCase().endsWith(".zip")) {
@@ -356,7 +356,7 @@ async function load23andMeFile(path) {
       if (!txt || !txt.trim()) {
         throw new Error(`Extracted nested ZIP text file is empty: ${targetFile.name}`);
       }
-      return parsePgp23(txt, targetFile.name);
+      return parse23Txt(txt, targetFile.name);
     }
     throw new Error(`Unsupported file type found in directory: ${resolvedFileUrl}`);
   }
