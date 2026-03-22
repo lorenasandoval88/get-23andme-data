@@ -3050,6 +3050,8 @@ async function fetchProfile(id) {
             const data = await res.json();
             lastProfileSourceById.set(resolvedId, candidate.name);
             await setCachedProfile(resolvedId, data);
+            console.log(`Saving profile cache in localforage: ${resolvedId}`);
+
             return data;
         } catch (error) {
             errors.push(`${candidate.name}: ${error.message}`);
