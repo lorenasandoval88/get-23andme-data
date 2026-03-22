@@ -2867,21 +2867,17 @@ function isCacheWithinMonths(savedAt, months = 3) {
 
 // Helper functions for fetch23andMeParticipants() cache management
 async function cacheParticipantsIfMissing(participants) {
-        console.log("cacheParticipantsIfMissing-------------------");
-        console.log(" 1if (!storage) return;-------------------");
-
+        console.log("checking cache before write-------------------");
     const storage = getStorage();
     if (!storage) return;
-
-        console.log(" 2if (!storage) return;-------------------");
-
+        // console.log("cacheParticipantsIfMissing: storage available-------------------")
     try {
         const existing = await storage.getItem(ALL_PROFILES_CACHE_KEY);
         console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY} before write:`, existing ? `found ${existing.length} entries` : "no cache",existing);
         if (existing) return;
 
         await storage.setItem(ALL_PROFILES_CACHE_KEY, participants);
-        console.log(`Saved participants cache: ${ALL_PROFILES_CACHE_KEY}`);
+        console.log(`Saving participants cache in localforage: ${ALL_PROFILES_CACHE_KEY}`);
     } catch (error) {
         console.warn(`Failed to write participants cache (${ALL_PROFILES_CACHE_KEY}):`, error);
     }
@@ -2958,7 +2954,7 @@ function parseParticipants(html, limit) {
 }
 
 /**
- * Fetch 23andMe participants from PGP ~ 1,000
+ * Fetch a list of PGP 23andMe participants (IDs ~ 1,000 + metadata) with: cache-first loading,multi-proxy fallback, and HTML parsing → structured dataset
  * @param {number} limit - Number of participants to return (default: 1300)
  * @returns {Promise<Array>} Array of participant objects
  * checks Genome:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
@@ -3015,7 +3011,8 @@ async function fetch23andMeParticipants(limit = 1300) {
     return participants;
 }
 
-// Fetch individual profile by ID with cache fallback
+// Fetch a PGP profile by ID using cache if available, otherwise try multiple proxy endpoints until successful, then cache and return the result.
+// 1. Cache-first strategy 2. Multi-proxy fallback 3. Source tracking
 // Example: fetchProfile("hu416394").then(console.log);
 async function fetchProfile(id) {
     const resolvedId = typeof id === "string" && id.trim() ? id.trim() : "hu09B28E";
@@ -3036,6 +3033,8 @@ async function fetchProfile(id) {
 
     const errors = [];
     for (const candidate of candidates) {
+        console.log(`Trying to fetch profile ${resolvedId} from ${candidate.name}...`);
+
         try {
             const res = await fetch(candidate.url, {
                 headers: {
@@ -3047,7 +3046,7 @@ async function fetchProfile(id) {
                 errors.push(`${candidate.name}: HTTP ${res.status}`);
                 continue;
             }
-
+            console.log(`Successfully fetched profile ${resolvedId} from ${candidate.name}`);
             const data = await res.json();
             lastProfileSourceById.set(resolvedId, candidate.name);
             await setCachedProfile(resolvedId, data);
