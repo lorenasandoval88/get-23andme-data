@@ -5,10 +5,12 @@
 
 import localforage from "localforage";
 
-const PGP_23ANDME_URL = "https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%93&data_type=23andMe&commit=Search";
+//PGP search results page (HTML) for 23andMe datasets—not an API endpoint
+const dataType = "23andMe";
+const PGP_23ANDME_URL = `https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%93&data_type=${dataType}&commit=Search`;
 const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
-const ALL_PROFILES_CACHE_KEY = "pgp:23andme-allUsers";
-const PROFILE_CACHE_PREFIX = "pgp:profile:";
+const ALL_PROFILES_CACHE_KEY = `Genome:${dataType}-allUsers`;
+const PROFILE_CACHE_PREFIX = `Genome:${dataType}-profile-`;
 let lastAllUsersSource = null;
 const lastProfileSourceById = new Map();
 
@@ -57,7 +59,7 @@ async function getCachedParticipants(limit = 1300) {
 
     try {
         const cached = await storage.getItem(ALL_PROFILES_CACHE_KEY);
-        console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY}:`, cached ? `found ${cached.length} entries` : "no cache",cached);
+        console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY}:`, cached ? `found ${cached.length} entries` : "no cache",cached ? cached.slice(0, 5) : null);
         if (!Array.isArray(cached) || cached.length === 0) return null;
         return cached.slice(0, limit);
     } catch (error) {
@@ -122,7 +124,7 @@ function parseParticipants(html, limit) {
  * Fetch 23andMe participants from PGP ~ 1,000
  * @param {number} limit - Number of participants to return (default: 1300)
  * @returns {Promise<Array>} Array of participant objects
- * checks pgp:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
+ * checks Genome:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
  */
 
 async function fetch23andMeParticipants(limit = 1300) {
