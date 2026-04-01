@@ -2837,14 +2837,20 @@ var localforageExports = requireLocalforage();
 var localforage = /*@__PURE__*/getDefaultExportFromCjs(localforageExports);
 
 /**
- * Fetches 23andMe participant data from Personal Genome Project (PGP)
- * Uses local proxy to bypass CORS restrictions
+ * Fetches 23andMe participant data from Personal Genome Project (PGP) and Openhumans with a cache-first strategy and multi-proxy fallback to bypass CORS restrictions.
+ * 
+ * Features:
+ * - Cache-first loading: Checks local cache before making network requests, and caches successful responses for future use.
+ * - Multi-proxy fallback: Tries multiple proxy endpoints (Cloudflare Worker, local proxy, AllOrigins, CORSProxy) to fetch data, increasing chances of success despite CORS issues.
+ * - HTML parsing: Parses HTML responses from PGP to extract structured participant data, including IDs, profile URLs, published dates, data types, sources, names, and download links.
+ * - Source tracking: Keeps track of where data was loaded from (cache or which proxy) for debugging and transparency.
  */
 
 
 //PGP search results page (HTML) for 23andMe datasets—not an API endpoint
 const dataType = "23andMe";
 const PGP_23ANDME_URL = `https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%93&data_type=${dataType}&commit=Search`;
+
 const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
 const ALL_PROFILES_CACHE_KEY = `Genome:${dataType}-allUsers`;
 const PROFILE_CACHE_PREFIX = `Genome:${dataType}-profile-`;
