@@ -21,7 +21,7 @@ async function limitStorage(ids = []){
 
         entries.push({ key, id, entryBytes, createdAt });
         totalBytes += entryBytes;
-        console.log(`Cached genome entries: ${key}, Size: ${(entryBytes / 1024 / 1024).toFixed(2)} MB`);
+        // console.log(`Cached genome entries: ${key}, Size: ${(entryBytes / 1024 / 1024).toFixed(2)} MB`);
     });
 
     if (totalBytes < MAX_GET23_CACHE_BYTES) {
@@ -159,7 +159,7 @@ async function load23andMeFile(path, id = null) {
     throw new TypeError("load23andMeFile expects a path/URL string or a File/FileList object");
   }
 
-  console.log(`load23andMeFile(): Starting to load ${path}...`);
+  console.log(`load23andMeFile(): Loading genomic data from ${path}...`);
 
   // Extract ID from path if not provided (e.g., from PGP URL)
   if (!id) {
@@ -265,8 +265,7 @@ async function load23andMeFile(path, id = null) {
     finalUrl = finalResponse.url;
   }
 
-  console.log(`get23_loadTxts.js: Success with ${successSource}`);
-  console.log(`get23_loadTxts.js: Resolved final URL: ${finalUrl}`);
+  console.log(`load23andMeFile(): Success with ${successSource} with final URL: ${finalUrl}`);
 
   // ------------------------------------------------------------
   // Route by final URL type
@@ -331,7 +330,7 @@ async function load23andMeFile(path, id = null) {
   // 3) Directory listing / collection root
   else if (finalUrl.endsWith("/_/")) {
     const html = await finalResponse.text();
-    console.log(`load23andMeFile():Directory listing / collection root Loaded directory HTML from ${successSource}`, html.slice(0, 500) + "...");
+    // console.log(`load23andMeFile():Directory listing / collection root Loaded directory HTML from ${successSource}`, html.slice(0, 500) + "...");
     if (!html || !html.trim()) {
       throw new Error(`Directory listing from ${successSource} is empty`);
     }

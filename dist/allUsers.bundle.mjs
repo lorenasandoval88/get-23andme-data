@@ -2914,7 +2914,7 @@ async function getCachedParticipants(limit = 1300) {
  * @param {number} limit - Number of participants to return
  * @returns {Array} Array of participant objects
  */
-function parseParticipants(html, limit) {
+function parseParticipants(html, limit, source = "unknown") {
     // console.log("html: ",html)
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
@@ -2935,7 +2935,7 @@ function parseParticipants(html, limit) {
         const cells = row.querySelectorAll("td");
         // console.log("Row cells:", cells.length);
         // console.log("row",row)
-        // Table has 8 columns: checkbox, participant, published, datatype, source, name, download, report
+        // Table has 8 columns: checkbox, participant, published, datatype, dataSource, name, download, report
         if (cells.length < 7) continue;
 
         // Participant link is in column 1 (index 1), download link in column 6
@@ -2949,7 +2949,7 @@ function parseParticipants(html, limit) {
             profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
             publishedDate: cells[2].textContent.trim(),
             dataType: cells[3].textContent.trim(),
-            source: cells[4].textContent.trim(),
+            dataSource: source, //cells[4].textContent.trim(),
             name: cells[5].textContent.trim(),
             downloadUrl: downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : null
         };
@@ -3010,9 +3010,8 @@ async function fetch23andMeParticipants(limit = 1300) {
     }
 
     lastAllUsersSource = usedSource;
-    // console.log("lastAllUsersSource",lastAllUsersSource)
-    const participants = parseParticipants(html, limit);
-    // console.log("parseParticipants(html, limit):", usedSource, participants);
+    const participants = parseParticipants(html, limit, lastAllUsersSource);
+
     await cacheParticipantsIfMissing(participants);
     return participants;
 }
