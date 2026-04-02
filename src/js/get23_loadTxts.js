@@ -335,7 +335,7 @@ async function load23andMeFile(path, id = null) {
       throw new Error(`Directory listing from ${successSource} is empty`);
     }
 
-    console.log(`load23andMeFile(): Got directory HTML from ${successSource}`);
+    //console.log(`load23andMeFile(): Got directory HTML from ${successSource}`);
 
     // Extract hrefs from HTML listing
     const hrefs = [...html.matchAll(/href="([^"]+)"/gi)].map(m => m[1]);
