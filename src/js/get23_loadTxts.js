@@ -104,9 +104,47 @@ console.log(`running parse23Txt for url ${url}, total rows: ${rows.length}, head
  * @param {string} [id] - Optional ID for caching (extracted from path if not provided)
  * @returns {Promise<Object>} Parsed genome data
  */
-
-
 async function load23andMeFile(path, id = null) {
+  // Helper to cache and return parsed data
+  async function cacheAndReturn(parsedData, cacheKeyValue, idValue) {
+    try {
+      await localforage.setItem(cacheKeyValue, {
+        data: parsedData,
+        cachedAt: Date.now()
+      });
+      console.log(`load23andMeFile(): Successfully cached data for ${cacheKeyValue}`);
+      await limitStorage([idValue]);
+    } catch (err) {
+      console.warn(`load23andMeFile(): Failed to cache ${cacheKeyValue}:`, err);
+    }
+    return parsedData;
+  }
+
+  // ── File object branch ──────────────────────────────────────────────────────
+  if (path instanceof File) {
+    const file = path;
+    console.log(`load23andMeFile(): File object received: ${file.name}`);
+    assertSupportedGenomeVersionLabel(file.name, "upload file");
+
+    const fileId = id || file.name;
+    const fileCacheKey = GET23_KEY_PREFIX + fileId;
+
+    try {
+      const cached = await localforage.getItem(fileCacheKey);
+      if (cached && cached.data) {
+        console.log(`load23andMeFile(): Cache hit for ${fileCacheKey}`);
+        return cached.data;
+      }
+    } catch (err) {
+      console.warn(`load23andMeFile(): Cache read failed for ${fileCacheKey}:`, err);
+    }
+
+    const txt = await file.text();
+    const parsed = await parse23Txt(txt, file.name);
+    return cacheAndReturn(parsed, fileCacheKey, fileId);
+  }
+  // ── String path / URL branch ─────────────────────────────────────────────────
+
   console.log(`load23andMeFile(): Starting to load ${path}...`);
 
   // Extract ID from path if not provided (e.g., from PGP URL)
@@ -130,21 +168,21 @@ async function load23andMeFile(path, id = null) {
 
   console.log(`load23andMeFile(): Cache miss for ${cacheKey}, fetching...`);
 
-  // Helper to cache and return parsed data
-  async function cacheAndReturn(parsedData) {
-    try {
-      await localforage.setItem(cacheKey, {
-        data: parsedData,
-        cachedAt: Date.now()
-      });
-      console.log(`load23andMeFile(): Successfully cached data for ${cacheKey}`);
-      // Enforce storage limit
-      await limitStorage([id]);
-    } catch (err) {
-      console.warn(`load23andMeFile(): Failed to cache ${cacheKey}:`, err);
-    }
-    return parsedData;
-  }
+  // // Helper to cache and return parsed data
+  // async function cacheAndReturn(parsedData) {
+  //   try {
+  //     await localforage.setItem(cacheKey, {
+  //       data: parsedData,
+  //       cachedAt: Date.now()
+  //     });
+  //     console.log(`load23andMeFile(): Successfully cached data for ${cacheKey}`);
+  //     // Enforce storage limit
+  //     await limitStorage([id]);
+  //   } catch (err) {
+  //     console.warn(`load23andMeFile(): Failed to cache ${cacheKey}:`, err);
+  //   }
+  //   return parsedData;
+  // }
 
   const isRemote = /^https?:\/\//.test(path);
   const isTxtFile = path.toLowerCase().endsWith(".txt");
@@ -164,7 +202,7 @@ async function load23andMeFile(path, id = null) {
     }
 
     const txt = await response.text();
-    return cacheAndReturn(await parse23Txt(txt, path));
+    return cacheAndReturn(await parse23Txt(txt, path), cacheKey, id);
   }
 
   // Remote PGP / ZIP URLs
@@ -244,7 +282,7 @@ async function load23andMeFile(path, id = null) {
     }
 
     console.log(`load23andMeFile(): Loaded direct TXT from ${successSource}`);
-    return cacheAndReturn(await parse23Txt(txt, finalUrl));
+    return cacheAndReturn(await parse23Txt(txt, finalUrl), cacheKey, id);
   }
 
   // 2) Direct ZIP
@@ -287,7 +325,7 @@ async function load23andMeFile(path, id = null) {
     if (!txt || !txt.trim()) {
       throw new Error(`Extracted text file is empty: ${targetFile.name}`);
     }
-    return cacheAndReturn(await parse23Txt(txt, targetFile.name));
+    return cacheAndReturn(await parse23Txt(txt, targetFile.name), cacheKey, id);
   }
 
   // 3) Directory listing / collection root
@@ -332,7 +370,7 @@ async function load23andMeFile(path, id = null) {
         throw new Error(`Directory TXT file is empty: ${resolvedFileUrl}`);
       }
 
-      return cacheAndReturn(await parse23Txt(txt, resolvedFileUrl));
+      return cacheAndReturn(await parse23Txt(txt, resolvedFileUrl), cacheKey, id);
     }
 
     if (resolvedFileUrl.toLowerCase().endsWith(".zip")) {
@@ -367,7 +405,7 @@ async function load23andMeFile(path, id = null) {
       if (!txt || !txt.trim()) {
         throw new Error(`Extracted nested ZIP text file is empty: ${targetFile.name}`);
       }
-      return cacheAndReturn(await parse23Txt(txt, targetFile.name));
+      return cacheAndReturn(await parse23Txt(txt, targetFile.name), cacheKey, id);
     }
     throw new Error(`Unsupported file type found in directory: ${resolvedFileUrl}`);
   }
