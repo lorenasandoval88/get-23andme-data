@@ -132,8 +132,8 @@ async function load23andMeFile(path, id = null) {
 
   if (isFileInstance || isFileLikeObject || isFileListLike) {
     const file = isFileListLike ? path[0] : path;
-    console.log(`load23andMeFile(): Detected file input:`, file);
-    console.log(`load23andMeFile(): File object received: ${file.name}`);
+    console.log(`load23andMeFile(): Detected file input for ${file.name}:`, file);
+//    console.log(`load23andMeFile(): File object received: ${file.name}`);
     assertSupportedGenomeVersionLabel(file.name, "upload file");
 
     const fileId = id || file.name;
