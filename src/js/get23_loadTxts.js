@@ -339,7 +339,7 @@ async function load23andMeFile(path, id = null) {
 
     // Extract hrefs from HTML listing
     const hrefs = [...html.matchAll(/href="([^"]+)"/gi)].map(m => m[1]);
-    console.log("load23andMeFile(): Directory hrefs:", hrefs);
+    //console.log("load23andMeFile(): Directory hrefs:", hrefs);
 
     // Prefer .zip first, then .txt
     const preferredHref =
