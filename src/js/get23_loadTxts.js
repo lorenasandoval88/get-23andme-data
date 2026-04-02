@@ -120,9 +120,19 @@ async function load23andMeFile(path, id = null) {
     return parsedData;
   }
 
-  // ── File object branch ──────────────────────────────────────────────────────
-  if (path instanceof File) {
-    const file = path;
+  // ── File object / FileList branch ───────────────────────────────────────────
+  const isFileInstance = typeof File !== "undefined" && path instanceof File;
+  const isFileLikeObject = !!path && typeof path === "object" && typeof path.text === "function";
+  const isFileListLike =
+    !!path &&
+    typeof path === "object" &&
+    typeof path.length === "number" &&
+    path.length > 0 &&
+    typeof path[0]?.text === "function";
+
+  if (isFileInstance || isFileLikeObject || isFileListLike) {
+    const file = isFileListLike ? path[0] : path;
+    console.log(`load23andMeFile(): Detected file input:`, file);
     console.log(`load23andMeFile(): File object received: ${file.name}`);
     assertSupportedGenomeVersionLabel(file.name, "upload file");
 
@@ -144,6 +154,10 @@ async function load23andMeFile(path, id = null) {
     return cacheAndReturn(parsed, fileCacheKey, fileId);
   }
   // ── String path / URL branch ─────────────────────────────────────────────────
+
+  if (typeof path !== "string") {
+    throw new TypeError("load23andMeFile expects a path/URL string or a File/FileList object");
+  }
 
   console.log(`load23andMeFile(): Starting to load ${path}...`);
 
@@ -168,21 +182,7 @@ async function load23andMeFile(path, id = null) {
 
   console.log(`load23andMeFile(): Cache miss for ${cacheKey}, fetching...`);
 
-  // // Helper to cache and return parsed data
-  // async function cacheAndReturn(parsedData) {
-  //   try {
-  //     await localforage.setItem(cacheKey, {
-  //       data: parsedData,
-  //       cachedAt: Date.now()
-  //     });
-  //     console.log(`load23andMeFile(): Successfully cached data for ${cacheKey}`);
-  //     // Enforce storage limit
-  //     await limitStorage([id]);
-  //   } catch (err) {
-  //     console.warn(`load23andMeFile(): Failed to cache ${cacheKey}:`, err);
-  //   }
-  //   return parsedData;
-  // }
+
 
   const isRemote = /^https?:\/\//.test(path);
   const isTxtFile = path.toLowerCase().endsWith(".txt");
