@@ -79,13 +79,13 @@ async function parse23Txt(txt, url) {
 	const obj = {};
 	const rows = String(txt ?? "").split(/[\r\n]+/g).filter(Boolean);
 	obj.txt = txt;
-	obj.url = url;
+  obj.url = url || "no url";
 
 	const n = rows.filter(r => r && r[0] === '#').length;
 	if (n === 0) {
 		throw new Error(`Invalid 23andMe file format: missing header in ${url}`);
 	}
-
+console.log(`running parse23Txt for url ${url}, total rows: ${rows.length}, header rows: ${n}`);
 	obj.meta = rows.slice(0, n - 1).join('\r\n');
 	obj.cols = rows[n - 1].replace(/^#\s*/, '').split(/\t/);
 	obj.dt = rows.slice(n).map((r, i) => {
