@@ -2955,7 +2955,7 @@ function parseParticipants(html, limit) {
         };
         participants.push(participant);
     }
-    // console.log(`Parsed ${participants.length} participants:`, participants);
+    console.log(`Parsed ${participants.length} participants:`, participants[0]);
     return participants;
 }
 
