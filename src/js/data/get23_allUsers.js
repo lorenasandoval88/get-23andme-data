@@ -113,6 +113,7 @@ function parseParticipants(html, limit, source = "unknown") {
             profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
             publishedDate: cells[2].textContent.trim(),
             dataType: cells[3].textContent.trim(),
+            source2: cells[4].textContent.trim(),
             dataSource: source, //cells[4].textContent.trim(),
             name: cells[5].textContent.trim(),
             downloadUrl: downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : null
