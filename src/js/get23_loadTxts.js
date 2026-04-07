@@ -105,6 +105,7 @@ console.log(`running parse23Txt for url ${url}, total rows: ${rows.length}, head
  * @returns {Promise<Object>} Parsed genome data
  */
 async function load23andMeFile(path, id = null) {
+  console.log(`load23andMeFile(): Starting to load data from path: ${path} with id: ${id}`);
   // Helper to cache and return parsed data
   async function cacheAndReturn(parsedData, cacheKeyValue, idValue) {
     try {
