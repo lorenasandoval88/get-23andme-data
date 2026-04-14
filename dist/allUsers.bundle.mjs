@@ -2853,6 +2853,9 @@ const PGP_23ANDME_URL = `https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%
 
 const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
 const ALL_PROFILES_CACHE_KEY = `Genome:${dataType}-allUsers`;
+
+const ALL_PROFILES_CACHE_KEY_FAST = `Genome:${dataType}-allUsers-fast`; // separate cache key for fast version that doesn't resolve filenames, so we can still get basic metadata even if filename resolution fails due to CORS or other issues.
+
 const PROFILE_CACHE_PREFIX = `Genome:${dataType}-profile-`;
 let lastAllUsersSource = null;
 const lastProfileSourceById = new Map();
@@ -2872,37 +2875,37 @@ function isCacheWithinMonths(savedAt, months = 3) {
 }
 
 // Helper functions for fetch23andMeParticipants() cache management
-async function cacheParticipantsIfMissing(participants) {
+async function cacheParticipantsIfMissing(participants, key = ALL_PROFILES_CACHE_KEY) {
         console.log("checking cache before write-------------------");
     const storage = getStorage();
     if (!storage) return;
         // console.log("cacheParticipantsIfMissing: storage available-------------------")
     try {
-        const existing = await storage.getItem(ALL_PROFILES_CACHE_KEY);
-        console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY} before write:`, existing ? `found ${existing.length} entries` : "no cache",existing);
+        const existing = await storage.getItem(key);
+        console.log(`Cache read for ${key} before write:`, existing ? `found ${existing.length} entries` : "no cache",existing);
         if (existing) return;
 
-        await storage.setItem(ALL_PROFILES_CACHE_KEY, participants);
-        console.log(`Saving participants cache in localforage: ${ALL_PROFILES_CACHE_KEY}`);
+        await storage.setItem(key, participants);
+        console.log(`Saving participants cache in localforage: ${key}`);
     } catch (error) {
-        console.warn(`Failed to write participants cache (${ALL_PROFILES_CACHE_KEY}):`, error);
+        console.warn(`Failed to write participants cache (${key}):`, error);
     }
 }
 
 // Helper functions for fetch23andMeParticipants() cache management
-async function getCachedParticipants(limit = 1300) {
+async function getCachedParticipants(limit = 1300, key = ALL_PROFILES_CACHE_KEY) {
     console.log("getCachedParticipants-------------------");
     console.log("Checking local cache for participants...");
     const storage = getStorage();
     if (!storage) return null;
 
     try {
-        const cached = await storage.getItem(ALL_PROFILES_CACHE_KEY);
-        console.log(`Cache read for ${ALL_PROFILES_CACHE_KEY}:`, cached ? `found ${cached.length} entries` : "no cache",cached ? cached.slice(0, 5) : null);
+        const cached = await storage.getItem(key);
+        console.log(`Cache read for ${key}:`, cached ? `found ${cached.length} entries` : "no cache",cached ? cached.slice(0, 5) : null);
         if (!Array.isArray(cached) || cached.length === 0) return null;
         return cached.slice(0, limit);
     } catch (error) {
-        console.warn(`Failed to read participants cache (${ALL_PROFILES_CACHE_KEY}):`, error);
+        console.warn(`Failed to read participants cache (${key}):`, error);
         return null;
     }
 }
@@ -2969,7 +2972,111 @@ async function parseParticipants(html, limit, source = "unknown") {
 }
 
 /**
+ * Parse HTML to extract participant data (fast version - no network calls per participant)
+ * @param {string} html - HTML content from PGP
+ * @param {number} limit - Number of participants to return
+ * @returns {Array} Array of participant objects
+ */
+function parseParticipantsFast(html, limit, source = "unknown") {
+    console.log("***************Parsing participants (fast) from HTML source:", source);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    let rows = [...doc.querySelectorAll("tr[data-file-row]")];
+    if (rows.length === 0) {
+        rows = [...doc.querySelectorAll("table tr")];
+    }
+
+    console.log("Found rows:", rows.length);
+
+    const participants = [];
+
+    for (const row of rows) {
+        if (participants.length >= limit) break;
+
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 7) continue;
+
+        const participantLink = cells[1].querySelector("a");
+        const downloadLink = cells[6].querySelector("a");
+
+        if (!participantLink) continue;
+
+        const fileName = cells[5].textContent.trim();
+        const fileExtension = fileName.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
+
+        const participant = {
+            id: participantLink.textContent.trim(),
+            profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
+            publishedDate: cells[2].textContent.trim(),
+            dataType: cells[3].textContent.trim(),
+            dataSource: source,
+            name: fileName,
+            fileName,
+            fileExtension,
+            finalUrl: null, // Not resolved in fast version
+            downloadUrl: downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : null
+        };
+        participants.push(participant);
+    }
+    console.log(`Parsed ${participants.length} participants (fast):`, participants[0]);
+    return participants;
+}
+
+/**
+ * Fetch a list of PGP 23andMe participants (fast version - no filename resolution)
+ * @param {number} limit - Number of participants to return (default: 1300)
+ * @returns {Promise<Array>} Array of participant objects
+ */
+async function fetch23andMeParticipants_fast(limit = 1300) {
+    console.log("fetch23andMeParticipants_fast-------------------");
+
+    const cachedParticipants = await getCachedParticipants(limit);
+    if (cachedParticipants) {
+        lastAllUsersSource = "cache";
+        return cachedParticipants;
+    }
+
+    const candidates = [
+        { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(PGP_23ANDME_URL)}` },
+        { name: "local-proxy", url: "http://localhost:3000/pgp-participants" },
+        { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(PGP_23ANDME_URL)}` },
+        { name: "corsproxy", url: `https://corsproxy.io/?${PGP_23ANDME_URL}` }
+    ];
+    let html = null;
+    let usedSource = null;
+    const errors = [];
+
+    for (const candidate of candidates) {
+        try {
+            console.log(`Trying to fetch participants from ${candidate.name}...`);
+            const response = await fetch(candidate.url);
+            if (response.ok) {
+                console.log(`Successfully fetched from ${candidate.name}`);
+                html = await response.text();
+                usedSource = candidate.name;
+                break;
+            }
+            errors.push(`${candidate.name}: HTTP ${response.status}`);
+        } catch (error) {
+            errors.push(`${candidate.name}: ${error.message}`);
+        }
+    }
+
+    if (!html) {
+        throw new Error(`Failed to fetch PGP data: ${errors.join(", ")}`);
+    }
+
+    lastAllUsersSource = usedSource;
+    const participants = parseParticipantsFast(html, limit, lastAllUsersSource);
+
+    await cacheParticipantsIfMissing(participants, ALL_PROFILES_CACHE_KEY_FAST);
+    return participants;
+}
+
+/**
  * Fetch a list of PGP 23andMe participants (IDs ~ 1,000 + metadata) with: cache-first loading,multi-proxy fallback, and HTML parsing → structured dataset
+ * Resolves actual filenames from download URLs (slow - makes network request per participant)
  * @param {number} limit - Number of participants to return (default: 1300)
  * @returns {Promise<Array>} Array of participant objects
  * checks Genome:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
@@ -3021,7 +3128,7 @@ async function fetch23andMeParticipants(limit = 1300) {
     lastAllUsersSource = usedSource;
     const participants = await parseParticipants(html, limit, lastAllUsersSource);
 
-    await cacheParticipantsIfMissing(participants);
+    await cacheParticipantsIfMissing(participants, ALL_PROFILES_CACHE_KEY);
     return participants;
 }
 
@@ -3209,5 +3316,5 @@ async function resolveDownloadFilename(downloadUrl) {
 //   return all;
 // }
 
-export { fetch23andMeParticipants, fetchProfile, getLastAllUsersSource, getLastProfileSource, resolveDownloadFilename };
+export { fetch23andMeParticipants, fetch23andMeParticipants_fast, fetchProfile, getLastAllUsersSource, getLastProfileSource, resolveDownloadFilename };
 //# sourceMappingURL=allUsers.bundle.mjs.map
