@@ -116,7 +116,7 @@ async function parseParticipants(html, limit, source = "unknown") {
         
         // Resolve actual filename from download URL
         const { finalUrl, fileName, fileExtension } = await resolveDownloadFilename(downloadUrl);
-
+        console.log(`parseParticipants Resolved filename: ${fileName} (final URL: ${finalUrl})`);
         const participant = {
             id: participantLink.textContent.trim(),
             profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
@@ -168,7 +168,7 @@ function parseParticipantsFast(html, limit, source = "unknown") {
 
         const fileName = cells[5].textContent.trim();
         const fileExtension = fileName.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
-
+        console.log(`parseParticipantsFast  filename: ${fileName} (download URL: ${downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : "no download link"})`);
         const participant = {
             id: participantLink.textContent.trim(),
             profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
