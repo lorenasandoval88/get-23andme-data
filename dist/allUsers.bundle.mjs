@@ -2912,9 +2912,9 @@ async function getCachedParticipants(limit = 1300) {
  * Parse HTML to extract participant data
  * @param {string} html - HTML content from PGP
  * @param {number} limit - Number of participants to return
- * @returns {Array} Array of participant objects
+ * @returns {Promise<Array>} Array of participant objects
  */
-function parseParticipants(html, limit, source = "unknown") {
+async function parseParticipants(html, limit, source = "unknown") {
     console.log("***************Parsing participants from HTML source:", source);
     console.log("html: ",html);
     const parser = new DOMParser();
@@ -2945,6 +2945,11 @@ function parseParticipants(html, limit, source = "unknown") {
 
         if (!participantLink) continue;
 
+        const downloadUrl = downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : null;
+        
+        // Resolve actual filename from download URL
+        const { finalUrl, fileName, fileExtension } = await resolveDownloadFilename(downloadUrl);
+
         const participant = {
             id: participantLink.textContent.trim(),
             profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
@@ -2952,7 +2957,10 @@ function parseParticipants(html, limit, source = "unknown") {
             dataType: cells[3].textContent.trim(),
             dataSource: source, //cells[4].textContent.trim(),
             name: cells[5].textContent.trim(),
-            downloadUrl: downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : null
+            fileName,
+            fileExtension,
+            finalUrl,
+            downloadUrl
         };
         participants.push(participant);
     }
@@ -3011,7 +3019,7 @@ async function fetch23andMeParticipants(limit = 1300) {
     }
 
     lastAllUsersSource = usedSource;
-    const participants = parseParticipants(html, limit, lastAllUsersSource);
+    const participants = await parseParticipants(html, limit, lastAllUsersSource);
 
     await cacheParticipantsIfMissing(participants);
     return participants;
@@ -3105,6 +3113,62 @@ function getLastProfileSource(id) {
     return lastProfileSourceById.get(id) || null;
 }
 
+/**
+ * Resolve the actual filename from a PGP download URL by following redirects.
+ * Uses multi-proxy fallback to bypass CORS, similar to loadTxts.js.
+ * @param {string} downloadUrl - The download URL (e.g., https://my.pgp-hms.org/user_file/download/4187)
+ * @returns {Promise<{finalUrl: string, fileName: string, fileExtension: string|null}>}
+ */
+async function resolveDownloadFilename(downloadUrl) {
+    if (!downloadUrl) {
+        return { finalUrl: null, fileName: null, fileExtension: null };
+    }
+
+    const candidates = [
+        { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(downloadUrl)}` },
+        { name: "local-proxy", url: `http://localhost:3000/pgp-resolve?url=${encodeURIComponent(downloadUrl)}` },
+        { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(downloadUrl)}` },
+        { name: "corsproxy", url: `https://corsproxy.io/?${downloadUrl}` }
+    ];
+
+    let finalUrl = null;
+    let lastError = null;
+
+    for (const candidate of candidates) {
+        try {
+            console.log(`resolveDownloadFilename(): Trying ${candidate.name}...`);
+            const response = await fetch(candidate.url, { method: "HEAD" });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // Get final URL from header or response.url
+            finalUrl =
+                response.headers.get("x-final-url") ||
+                response.headers.get("X-Final-URL") ||
+                response.url;
+
+            console.log(`resolveDownloadFilename(): Success with ${candidate.name}. Final URL: ${finalUrl}`);
+            break;
+        } catch (err) {
+            console.warn(`resolveDownloadFilename(): ${candidate.name} failed: ${err.message}`);
+            lastError = err;
+        }
+    }
+
+    if (!finalUrl) {
+        console.warn(`resolveDownloadFilename(): All proxies failed for ${downloadUrl}: ${lastError?.message}`);
+        return { finalUrl: null, fileName: null, fileExtension: null };
+    }
+
+    // Extract filename from final URL
+    const fileName = finalUrl.split("/").pop()?.split("?")[0] || null;
+    const fileExtension = fileName?.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
+
+    return { finalUrl, fileName, fileExtension };
+}
+
 
 // ALL USERS ENDPOINT (VCF 23ANDME ETC METADATA, WITHOUT FILES) - PAGINATED JSON (NO HTML PARSING, MORE STABLE)
 // without web crawling, so we dont rely on the HTML structure of the page, which can change 
@@ -3145,5 +3209,5 @@ function getLastProfileSource(id) {
 //   return all;
 // }
 
-export { fetch23andMeParticipants, fetchProfile, getLastAllUsersSource, getLastProfileSource };
+export { fetch23andMeParticipants, fetchProfile, getLastAllUsersSource, getLastProfileSource, resolveDownloadFilename };
 //# sourceMappingURL=allUsers.bundle.mjs.map
