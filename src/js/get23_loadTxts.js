@@ -86,7 +86,8 @@ async function parse23Txt(txt, url) {
 		throw new Error(`Invalid 23andMe file format: missing header in ${url}`);
 	}
 console.log(`running parse23Txt for url ${url}, total rows: ${rows.length}, header rows: ${n}`);
-	obj.meta = rows.slice(0, n - 1).join('\r\n');
+	obj.filename = url.split('/').pop() || "unknown_filename";
+  obj.meta = rows.slice(0, n - 1).join('\r\n');
 	obj.cols = rows[n - 1].replace(/^#\s*/, '').split(/\t/);
 	obj.dt = rows.slice(n).map((r, i) => {
 		const parts = r.split('\t');
@@ -250,6 +251,7 @@ async function load23andMeFile(path, id = null) {
       // 👇 get header FIRST
        finalResponse = response;
       finalUrl = exposedFinalUrl;
+      console.log(`load23andMeFile(): Successfully fetched from ${candidate.name}. Final URL: ${finalUrl}, Content-Type: ${contentType}`);
       successSource = candidate.name;
       break;
     } catch (err) {
