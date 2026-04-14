@@ -2915,7 +2915,8 @@ async function getCachedParticipants(limit = 1300) {
  * @returns {Array} Array of participant objects
  */
 function parseParticipants(html, limit, source = "unknown") {
-    // console.log("html: ",html)
+    console.log("***************Parsing participants from HTML source:", source);
+    console.log("html: ",html);
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
@@ -2925,7 +2926,7 @@ function parseParticipants(html, limit, source = "unknown") {
         rows = [...doc.querySelectorAll("table tr")];
     }
 
-    console.log("Found rows:", rows.length);
+    console.log("Found rows:", rows.length, rows.slice(0, 5));
 
     const participants = [];
 
