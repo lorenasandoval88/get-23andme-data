@@ -3082,7 +3082,7 @@ async function fetch23andMeParticipants_fast(limit = 10) {
  * checks Genome:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
  */
 
-async function fetch23andMeParticipants(limit = 1300) {
+async function fetch23andMeParticipants(limit = 10) {
     console.log("fetch23andMeParticipants-------------------");
     // console.log("Fetching 23andMe participants with limit:", limit);
     // console.log("PGP_23ANDME_URL:",PGP_23ANDME_URL)
