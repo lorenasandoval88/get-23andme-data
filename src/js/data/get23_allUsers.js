@@ -192,7 +192,7 @@ function parseParticipantsFast(html, limit, source = "unknown") {
  * @param {number} limit - Number of participants to return (default: 1300)
  * @returns {Promise<Array>} Array of participant objects
  */
-async function fetch23andMeParticipants_fast(limit = 1300) {
+async function fetch23andMeParticipants_fast(limit = 10) {
     console.log("fetch23andMeParticipants_fast-------------------")
 
     const cachedParticipants = await getCachedParticipants(limit, ALL_PROFILES_CACHE_KEY_FAST);
@@ -246,7 +246,7 @@ async function fetch23andMeParticipants_fast(limit = 1300) {
  * checks Genome:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
  */
 
-async function fetch23andMeParticipants(limit = 1300) {
+async function fetch23andMeParticipants(limit = 10) {
     console.log("fetch23andMeParticipants-------------------")
     // console.log("Fetching 23andMe participants with limit:", limit);
     // console.log("PGP_23ANDME_URL:",PGP_23ANDME_URL)

@@ -3028,10 +3028,10 @@ function parseParticipantsFast(html, limit, source = "unknown") {
  * @param {number} limit - Number of participants to return (default: 1300)
  * @returns {Promise<Array>} Array of participant objects
  */
-async function fetch23andMeParticipants_fast(limit = 1300) {
+async function fetch23andMeParticipants_fast(limit = 10) {
     console.log("fetch23andMeParticipants_fast-------------------");
 
-    const cachedParticipants = await getCachedParticipants(limit);
+    const cachedParticipants = await getCachedParticipants(limit, ALL_PROFILES_CACHE_KEY_FAST);
     if (cachedParticipants) {
         lastAllUsersSource = "cache";
         return cachedParticipants;
