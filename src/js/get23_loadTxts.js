@@ -1,6 +1,7 @@
 import localforage from "localforage";
+const dataType = "23andMe";
 const MAX_GET23_CACHE_BYTES = 300 * 1024 * 1024;
-const GET23_KEY_PREFIX = "Genome:id-";
+const GET23_KEY_PREFIX = `Genome:${dataType}-txt-`;
 
 import JSZip from "jszip";
 
@@ -254,6 +255,8 @@ async function load23andMeFile(path, id = null) {
       console.log(`load23andMeFile(): Successfully fetched from ${candidate.name}. Final URL: ${finalUrl}, Content-Type: ${contentType}`);
       successSource = candidate.name;
       break;
+
+
     } catch (err) {
       console.warn(` ${candidate.name} failed: ${err.message}`);
       lastError = err;
