@@ -9,6 +9,12 @@
  */
 
 import localforage from "localforage";
+import JSZip from "jszip";
+
+// Helper to check for supported genome version labels (v3, v4, v5)
+function hasSupportedGenomeVersionLabel(value = "") {
+  return /(^|[^a-z0-9])v(?:3|4|5)(?=[^a-z0-9]|$)/i.test(String(value));
+}
 
 //PGP search results page (HTML) for 23andMe datasets—not an API endpoint
 const dataType = "23andMe";
@@ -74,7 +80,6 @@ async function getCachedParticipants(limit = 1300, key = ALL_PROFILES_CACHE_KEY)
     }
 }
 
-
 /**
  * Parse HTML to extract participant data
  * @param {string} html - HTML content from PGP
@@ -83,7 +88,7 @@ async function getCachedParticipants(limit = 1300, key = ALL_PROFILES_CACHE_KEY)
  */
 async function parseParticipants(html, limit, source = "unknown") {
     console.log("***************Parsing participants from HTML source:", source);
-    console.log("html: ",html)
+    //console.log("html: ",html)
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
@@ -116,7 +121,7 @@ async function parseParticipants(html, limit, source = "unknown") {
         
         // Resolve actual filename from download URL
         const { finalUrl, fileName, fileExtension } = await resolveDownloadFilename(downloadUrl);
-        console.log(`parseParticipants Resolved filename: ${fileName} (final URL: ${finalUrl})`);
+        console.log(`parseParticipants Resolved filename: ${fileName}, final URL: ${finalUrl}, download URL: ${downloadUrl} `);
         const participant = {
             id: participantLink.textContent.trim(),
             profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
@@ -226,11 +231,9 @@ async function fetch23andMeParticipants_fast(limit = 10) {
             errors.push(`${candidate.name}: ${error.message}`);
         }
     }
-
     if (!html) {
         throw new Error(`Failed to fetch PGP data: ${errors.join(", ")}`);
     }
-
     lastAllUsersSource = usedSource;
     const participants = parseParticipantsFast(html, limit, lastAllUsersSource);
 
@@ -403,12 +406,14 @@ async function resolveDownloadFilename(downloadUrl) {
     ];
 
     let finalUrl = null;
+    let finalResponse = null;
+    let successSource = null;
     let lastError = null;
 
     for (const candidate of candidates) {
         try {
-            console.log(`resolveDownloadFilename(): Trying ${candidate.name}...`);
-            const response = await fetch(candidate.url, { method: "HEAD" });
+            console.log(`resolveDownloadFilename(): Trying ${candidate.name}...from url ${candidate.url}`);
+            const response = await fetch(candidate.url);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -420,6 +425,8 @@ async function resolveDownloadFilename(downloadUrl) {
                 response.headers.get("X-Final-URL") ||
                 response.url;
 
+            finalResponse = response;
+            successSource = candidate.name;
             console.log(`resolveDownloadFilename(): Success with ${candidate.name}. Final URL: ${finalUrl}`);
             break;
         } catch (err) {
@@ -428,15 +435,104 @@ async function resolveDownloadFilename(downloadUrl) {
         }
     }
 
-    if (!finalUrl) {
+    if (!finalUrl || !finalResponse) {
         console.warn(`resolveDownloadFilename(): All proxies failed for ${downloadUrl}: ${lastError?.message}`);
         return { finalUrl: null, fileName: null, fileExtension: null };
     }
 
-    // Extract filename from final URL
+    // ------------------------------------------------------------
+    // Route by final URL type
+    // ------------------------------------------------------------
+
+    // 1) Direct TXT
+    if (finalUrl.endsWith(".txt")) {
+        const fileName = finalUrl.split("/").pop()?.split("?")[0] || null;
+        const fileExtension = "txt";
+        console.log(`resolveDownloadFilename(): Direct TXT - filename: ${fileName}`);
+        return { finalUrl, fileName, fileExtension };
+    }
+
+    // 2) Direct ZIP - extract inner TXT filename
+    else if (finalUrl.endsWith(".zip")) {
+        try {
+            const buffer = await finalResponse.arrayBuffer();
+
+            if (!buffer || buffer.byteLength === 0) {
+                throw new Error(`ZIP response from ${successSource} is empty`);
+            }
+
+            const bytes = new Uint8Array(buffer);
+            const isZipBuffer = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+
+            if (!isZipBuffer) {
+                const preview = new TextDecoder("utf-8").decode(bytes.slice(0, 300));
+                console.error("resolveDownloadFilename(): Response is not a ZIP file. Preview:", preview);
+                throw new Error(`Response from ${successSource} is not a ZIP archive`);
+            }
+
+            const zip = await JSZip.loadAsync(buffer);
+            const zipNames = Object.keys(zip.files);
+            console.log("resolveDownloadFilename(): ZIP entries:", zipNames);
+
+            const targetFile = zipNames
+                .map(name => zip.files[name])
+                .find(file => !file.dir && file.name.toLowerCase().endsWith(".txt") && hasSupportedGenomeVersionLabel(file.name));
+
+            if (!targetFile) {
+                // Fallback to ZIP filename itself
+                const zipFileName = finalUrl.split("/").pop()?.split("?")[0] || null;
+                console.log(`resolveDownloadFilename(): No v3/v4/v5 .txt found in ZIP, using ZIP filename: ${zipFileName}`);
+                return { finalUrl, fileName: zipFileName, fileExtension: "zip" };
+            }
+
+            console.log(`resolveDownloadFilename(): Found TXT inside ZIP: ${targetFile.name}`);
+            return { finalUrl, fileName: targetFile.name, fileExtension: "txt" };
+        } catch (err) {
+            console.warn(`resolveDownloadFilename(): Failed to parse ZIP: ${err.message}`);
+            const zipFileName = finalUrl.split("/").pop()?.split("?")[0] || null;
+            return { finalUrl, fileName: zipFileName, fileExtension: "zip" };
+        }
+    }
+
+    // 3) Directory listing / collection root
+    else if (finalUrl.endsWith("/_/")) {
+        try {
+            const html = await finalResponse.text();
+
+            if (!html || !html.trim()) {
+                throw new Error(`Directory listing from ${successSource} is empty`);
+            }
+
+            // Extract hrefs from HTML listing
+            const hrefs = [...html.matchAll(/href="([^"]+)"/gi)].map(m => m[1]);
+
+            // Prefer .zip first, then .txt
+            const preferredHref =
+                hrefs.find(h => /\.zip$/i.test(h) && hasSupportedGenomeVersionLabel(h)) ||
+                hrefs.find(h => /\.txt$/i.test(h) && hasSupportedGenomeVersionLabel(h));
+
+            if (!preferredHref) {
+                console.warn("resolveDownloadFilename(): No v3/v4/v5 .zip or .txt found in directory listing");
+                return { finalUrl, fileName: null, fileExtension: null };
+            }
+
+            const resolvedFileUrl = new URL(preferredHref, finalUrl).href;
+            const fileName = resolvedFileUrl.split("/").pop()?.split("?")[0] || null;
+            const fileExtension = fileName?.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
+
+            console.log(`resolveDownloadFilename(): Directory listing resolved to: ${fileName}`);
+            return { finalUrl: resolvedFileUrl, fileName, fileExtension };
+        } catch (err) {
+            console.warn(`resolveDownloadFilename(): Failed to parse directory listing: ${err.message}`);
+            return { finalUrl, fileName: null, fileExtension: null };
+        }
+    }
+
+    // 4) Fallback - extract filename from URL
     const fileName = finalUrl.split("/").pop()?.split("?")[0] || null;
     const fileExtension = fileName?.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
 
+    console.log(`resolveDownloadFilename(): Fallback - extracted filename: ${fileName}, extension: ${fileExtension}`);
     return { finalUrl, fileName, fileExtension };
 }
 
