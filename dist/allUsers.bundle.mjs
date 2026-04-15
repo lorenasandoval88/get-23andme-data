@@ -2885,12 +2885,10 @@ const dataType = "23andMe";
 const PGP_23ANDME_URL = `https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%93&data_type=${dataType}&commit=Search`;
 
 const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
-const ALL_PROFILES_CACHE_KEY = `Genome:${dataType}-allUsers`;
-
-const ALL_PROFILES_CACHE_KEY_FAST = `Genome:${dataType}-allUsers-fast`; // separate cache key for fast version that doesn't resolve filenames, so we can still get basic metadata even if filename resolution fails due to CORS or other issues.
-
+const PARTICIPANT_CACHE_PREFIX = `Genome:${dataType}-participant-`; // per-participant cache (full metadata + resolved filename)
 const PROFILE_CACHE_PREFIX = `Genome:${dataType}-profile-`;
-const FILENAME_CACHE_PREFIX = `Genome:${dataType}-filename-`; // per-participant filename resolution cache
+const ALL_PARTICIPANT_CACHE_PREFIX = `Genome:${dataType}-allParticipants-`; // per-participant cache (full metadata + resolved filename)
+
 let lastAllUsersSource = null;
 const lastProfileSourceById = new Map();
 
@@ -2908,100 +2906,79 @@ function isCacheWithinMonths(savedAt, months = 3) {
     return savedDate >= cutoff;
 }
 
-// Helper functions for fetch23andMeParticipants() cache management
-async function cacheParticipantsIfMissing(participants, key = ALL_PROFILES_CACHE_KEY) {
-        console.log("checking cache before write-------------------");
-    const storage = getStorage();
-    if (!storage) return;
-        // console.log("cacheParticipantsIfMissing: storage available-------------------")
-    try {
-        const existing = await storage.getItem(key);
-        console.log(`Cache read for ${key} before write:`, existing ? `found ${existing.length} entries` : "no cache",existing);
-        if (existing) return;
-
-        await storage.setItem(key, participants);
-        console.log(`Saving participants cache in localforage: ${key}`);
-    } catch (error) {
-        console.warn(`Failed to write participants cache (${key}):`, error);
-    }
-}
-
-// Save participants incrementally (overwrite existing cache)
-async function saveParticipantsIncremental(participants, key = ALL_PROFILES_CACHE_KEY) {
-    const storage = getStorage();
-    if (!storage) return;
-    try {
-        await storage.setItem(key, participants);
-        console.log(`Incremental save: ${participants.length} participants to ${key}`);
-    } catch (error) {
-        console.warn(`Failed to save participants incrementally (${key}):`, error);
-    }
-}
-
-// Per-participant filename cache helpers
-async function getCachedFilename(downloadUrl) {
-    if (!downloadUrl) return null;
+// Per-participant cache helpers
+async function getCachedParticipant(id) {
+    if (!id) return null;
     const storage = getStorage();
     if (!storage) return null;
     try {
-        const cached = await storage.getItem(FILENAME_CACHE_PREFIX + encodeURIComponent(downloadUrl));
+        const cached = await storage.getItem(PARTICIPANT_CACHE_PREFIX + id);
         return cached || null;
     } catch (error) {
         return null;
     }
 }
 
-async function setCachedFilename(downloadUrl, data) {
-    if (!downloadUrl) return;
+async function setCachedParticipant(id, participant) {
+    if (!id) return;
     const storage = getStorage();
     if (!storage) return;
     try {
-        await storage.setItem(FILENAME_CACHE_PREFIX + encodeURIComponent(downloadUrl), {
-            ...data,
+        await storage.setItem(PARTICIPANT_CACHE_PREFIX + id, {
+            ...participant,
             cachedAt: Date.now()
         });
     } catch (error) {
-        console.warn(`Failed to cache filename for ${downloadUrl}:`, error);
+        console.warn(`Failed to cache participant ${id}:`, error);
     }
 }
 
-// Helper functions for fetch23andMeParticipants() cache management
-async function getCachedParticipants(limit = 1300, key = ALL_PROFILES_CACHE_KEY) {
-    console.log("getCachedParticipants-------------------");
-    console.log("Checking local cache for participants...");
+// Bulk cache helpers for fast version (all participants under one key)
+async function getCachedAllParticipants(limit) {
     const storage = getStorage();
     if (!storage) return null;
-
     try {
-        const cached = await storage.getItem(key);
-        console.log(`Cache read for ${key}:`, cached ? `found ${cached.length} entries` : "no cache",cached ? cached.slice(0, 5) : null);
-        if (!Array.isArray(cached) || cached.length === 0) return null;
-        return cached.slice(0, limit);
+        const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_PREFIX + "fast");
+        if (!cached || !Array.isArray(cached.participants)) return null;
+        console.log(`getCachedAllParticipants: found ${cached.participants.length} cached participants`);
+        return cached.participants.slice(0, limit);
     } catch (error) {
-        console.warn(`Failed to read participants cache (${key}):`, error);
+        console.warn("Failed to read bulk participants cache:", error);
         return null;
     }
 }
 
+async function setCachedAllParticipants(participants) {
+    const storage = getStorage();
+    if (!storage) return;
+    try {
+        await storage.setItem(ALL_PARTICIPANT_CACHE_PREFIX + "fast", {
+            participants,
+            cachedAt: Date.now()
+        });
+        console.log(`setCachedAllParticipants: saved ${participants.length} participants`);
+    } catch (error) {
+        console.warn("Failed to save bulk participants cache:", error);
+    }
+}
+
 /**
- * Parse HTML to extract participant data with incremental caching
+ * Parse HTML to extract participant data with per-participant caching
  * @param {string} html - HTML content from PGP
  * @param {number} limit - Number of participants to return
  * @param {string} source - Source identifier
- * @param {Object} options - Options for incremental caching
- * @param {number} options.batchSize - Save every N participants (default: 10)
- * @param {Function} options.onBatchComplete - Callback when a batch is saved
+ * @param {Object} options - Options for callbacks
+ * @param {number} options.batchSize - Log progress every N participants (default: 10)
+ * @param {Function} options.onBatchComplete - Callback when a batch is processed
  * @returns {Promise<Array>} Array of participant objects
  */
 async function parseParticipants(html, limit, source = "unknown", options = {}) {
     const { batchSize = 10, onBatchComplete = null } = options;
     
     console.log("***************Parsing participants from HTML source:", source);
-    //console.log("html: ",html)
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
-    // Rows have data-file-row attribute, or fallback to all tr elements
     let rows = [...doc.querySelectorAll("tr[data-file-row]")];
     if (rows.length === 0) {
         rows = [...doc.querySelectorAll("table tr")];
@@ -3017,61 +2994,50 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
         if (participants.length >= limit) break;
 
         const cells = row.querySelectorAll("td");
-        // console.log("Row cells:", cells.length);
-        // console.log("row",row)
-        // Table has 8 columns: checkbox, participant, published, datatype, dataSource, name, download, report
         if (cells.length < 7) continue;
 
-        // Participant link is in column 1 (index 1), download link in column 6
         const participantLink = cells[1].querySelector("a");
         const downloadLink = cells[6].querySelector("a");
 
         if (!participantLink) continue;
 
+        const id = participantLink.textContent.trim();
         const downloadUrl = downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : null;
         
-        // Check per-participant filename cache first
-        let finalUrl, fileName, fileExtension;
-        const cachedFilename = await getCachedFilename(downloadUrl);
+        // Check per-participant cache first
+        const cachedParticipant = await getCachedParticipant(id);
         
-        if (cachedFilename) {
-            finalUrl = cachedFilename.finalUrl;
-            fileName = cachedFilename.fileName;
-            fileExtension = cachedFilename.fileExtension;
+        if (cachedParticipant) {
+            participants.push(cachedParticipant);
             resolvedFromCache++;
-            console.log(`parseParticipants [CACHE HIT] filename: ${fileName}`);
+            console.log(`parseParticipants [CACHE HIT] id: ${id}, filename: ${cachedParticipant.fileName}`);
         } else {
             // Resolve actual filename from download URL
             const resolved = await resolveDownloadFilename(downloadUrl);
-            finalUrl = resolved.finalUrl;
-            fileName = resolved.fileName;
-            fileExtension = resolved.fileExtension;
             resolvedFromNetwork++;
             
-            // Cache the resolved filename
-            if (downloadUrl) {
-                await setCachedFilename(downloadUrl, { finalUrl, fileName, fileExtension });
-            }
-            console.log(`parseParticipants [NETWORK] Resolved filename: ${fileName}, final URL: ${finalUrl}, download URL: ${downloadUrl}`);
+            const participant = {
+                id,
+                profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
+                publishedDate: cells[2].textContent.trim(),
+                dataType: cells[3].textContent.trim(),
+                dataSource: source,
+                name: cells[5].textContent.trim(),
+                fileName: resolved.fileName,
+                fileExtension: resolved.fileExtension,
+                finalUrl: resolved.finalUrl,
+                downloadUrl
+            };
+            
+            // Cache the participant
+            await setCachedParticipant(id, participant);
+            participants.push(participant);
+            console.log(`parseParticipants [NETWORK] id: ${id}, filename: ${resolved.fileName}`);
         }
         
-        const participant = {
-            id: participantLink.textContent.trim(),
-            profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
-            publishedDate: cells[2].textContent.trim(),
-            dataType: cells[3].textContent.trim(),
-            dataSource: source, //cells[4].textContent.trim(),
-            name: cells[5].textContent.trim(),
-            fileName,
-            fileExtension,
-            finalUrl,
-            downloadUrl
-        };
-        participants.push(participant);
-        
-        // Incremental save every batchSize participants
+        // Progress callback every batchSize participants
         if (participants.length % batchSize === 0) {
-            console.log(`parseParticipants: Batch checkpoint at ${participants.length} participants (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork})`);
+            console.log(`parseParticipants: Progress ${participants.length}/${limit} (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork})`);
             if (onBatchComplete) {
                 await onBatchComplete([...participants]);
             }
@@ -3136,16 +3102,20 @@ function parseParticipantsFast(html, limit, source = "unknown") {
 
 /**
  * Fetch a list of PGP 23andMe participants (fast version - no filename resolution)
- * @param {number} limit - Number of participants to return (default: 1300)
+ * Uses bulk cache under ALL_PARTICIPANT_CACHE_PREFIX - all participants stored under one key.
+ * Returns cached data if available and sufficient, otherwise fetches fresh HTML.
+ * @param {number} limit - Number of participants to return (default: 1100)
  * @returns {Promise<Array>} Array of participant objects
  */
-async function fetch23andMeParticipants_fast(limit = 10) {
+async function fetch23andMeParticipants_fast(limit = 1100) {
     console.log("fetch23andMeParticipants_fast-------------------");
 
-    const cachedParticipants = await getCachedParticipants(limit, ALL_PROFILES_CACHE_KEY_FAST);
-    if (cachedParticipants) {
+    // Check bulk cache first
+    const cached = await getCachedAllParticipants(limit);
+    if (cached && cached.length >= limit) {
         lastAllUsersSource = "cache";
-        return cachedParticipants;
+        console.log(`Returning ${cached.length} participants from bulk cache`);
+        return cached;
     }
 
     const candidates = [
@@ -3177,38 +3147,29 @@ async function fetch23andMeParticipants_fast(limit = 10) {
         throw new Error(`Failed to fetch PGP data: ${errors.join(", ")}`);
     }
     lastAllUsersSource = usedSource;
+    
     const participants = parseParticipantsFast(html, limit, lastAllUsersSource);
-
-    await cacheParticipantsIfMissing(participants, ALL_PROFILES_CACHE_KEY_FAST);
+    
+    // Save to bulk cache
+    await setCachedAllParticipants(participants);
+    
     return participants;
 }
 
 /**
- * Fetch a list of PGP 23andMe participants (IDs ~ 1,000 + metadata) with: cache-first loading,multi-proxy fallback, and HTML parsing → structured dataset
- * Resolves actual filenames from download URLs (slow - makes network request per participant)
- * Supports incremental caching - saves progress every batchSize participants
- * @param {number} limit - Number of participants to return (default: 1300)
- * @param {Object} options - Options for incremental caching
- * @param {number} options.batchSize - Save every N participants (default: 10)
+ * Fetch a list of PGP 23andMe participants with per-participant caching.
+ * Always fetches HTML to get participant list, but uses cache for filename resolution.
+ * Each participant is cached individually - "Load more" naturally works.
+ * @param {number} limit - Number of participants to return (default: 10)
+ * @param {Object} options - Options
+ * @param {number} options.batchSize - Log progress every N participants (default: 10)
  * @returns {Promise<Array>} Array of participant objects
- * checks Genome:23andme-allUsers before hitting fetch(candidate.url), and only falls back to network when cache is missing/empty.
  */
-
 async function fetch23andMeParticipants(limit = 10, options = {}) {
     const { batchSize = 10 } = options;
     
     console.log("fetch23andMeParticipants-------------------");
-    // console.log("Fetching 23andMe participants with limit:", limit);
-    // console.log("PGP_23ANDME_URL:",PGP_23ANDME_URL)
 
-    // begin if fetch flow if cache is available
-    const cachedParticipants = await getCachedParticipants(limit);
-    if (cachedParticipants) {
-        lastAllUsersSource = "cache";
-        // console.log(`Loaded participants from cache: ${cachedParticipants.length}`);
-        return cachedParticipants;
-    }
-    // begin else fetch flow if cache is missing or empty
     const candidates = [
         { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(PGP_23ANDME_URL)}` },
         { name: "local-proxy", url: "http://localhost:3000/pgp-participants" },
@@ -3241,17 +3202,8 @@ async function fetch23andMeParticipants(limit = 10, options = {}) {
 
     lastAllUsersSource = usedSource;
     
-    // Parse with incremental saving every batchSize participants
-    const participants = await parseParticipants(html, limit, lastAllUsersSource, {
-        batchSize,
-        onBatchComplete: async (batchParticipants) => {
-            await saveParticipantsIncremental(batchParticipants, ALL_PROFILES_CACHE_KEY);
-        }
-    });
-
-    // Final save (in case total isn't a multiple of batchSize)
-    await saveParticipantsIncremental(participants, ALL_PROFILES_CACHE_KEY);
-    return participants;
+    // Parse - each participant is cached individually
+    return parseParticipants(html, limit, lastAllUsersSource, { batchSize });
 }
 
 // Fetch a PGP profile by ID using cache if available, otherwise try multiple proxy endpoints until successful, then cache and return the result.
