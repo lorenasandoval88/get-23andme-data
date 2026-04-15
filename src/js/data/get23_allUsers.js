@@ -70,6 +70,35 @@ async function setCachedParticipant(id, participant) {
     }
 }
 
+// Bulk cache helpers for fast version (all participants under one key)
+async function getCachedAllParticipants(limit) {
+    const storage = getStorage();
+    if (!storage) return null;
+    try {
+        const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_PREFIX + "fast");
+        if (!cached || !Array.isArray(cached.participants)) return null;
+        console.log(`getCachedAllParticipants: found ${cached.participants.length} cached participants`);
+        return cached.participants.slice(0, limit);
+    } catch (error) {
+        console.warn("Failed to read bulk participants cache:", error);
+        return null;
+    }
+}
+
+async function setCachedAllParticipants(participants) {
+    const storage = getStorage();
+    if (!storage) return;
+    try {
+        await storage.setItem(ALL_PARTICIPANT_CACHE_PREFIX + "fast", {
+            participants,
+            cachedAt: Date.now()
+        });
+        console.log(`setCachedAllParticipants: saved ${participants.length} participants`);
+    } catch (error) {
+        console.warn("Failed to save bulk participants cache:", error);
+    }
+}
+
 /**
  * Parse HTML to extract participant data with per-participant caching
  * @param {string} html - HTML content from PGP
@@ -210,12 +239,21 @@ function parseParticipantsFast(html, limit, source = "unknown") {
 
 /**
  * Fetch a list of PGP 23andMe participants (fast version - no filename resolution)
- * Does not use cache - always fetches fresh HTML and parses without resolving filenames
- * @param {number} limit - Number of participants to return (default: 1300)
+ * Uses bulk cache under ALL_PARTICIPANT_CACHE_PREFIX - all participants stored under one key.
+ * Returns cached data if available and sufficient, otherwise fetches fresh HTML.
+ * @param {number} limit - Number of participants to return (default: 1100)
  * @returns {Promise<Array>} Array of participant objects
  */
 async function fetch23andMeParticipants_fast(limit = 1100) {
     console.log("fetch23andMeParticipants_fast-------------------")
+
+    // Check bulk cache first
+    const cached = await getCachedAllParticipants(limit);
+    if (cached && cached.length >= limit) {
+        lastAllUsersSource = "cache";
+        console.log(`Returning ${cached.length} participants from bulk cache`);
+        return cached;
+    }
 
     const candidates = [
         { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(PGP_23ANDME_URL)}` },
@@ -246,7 +284,13 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
         throw new Error(`Failed to fetch PGP data: ${errors.join(", ")}`);
     }
     lastAllUsersSource = usedSource;
-    return parseParticipantsFast(html, limit, lastAllUsersSource);
+    
+    const participants = parseParticipantsFast(html, limit, lastAllUsersSource);
+    
+    // Save to bulk cache
+    await setCachedAllParticipants(participants);
+    
+    return participants;
 }
 
 /**
