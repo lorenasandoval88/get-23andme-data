@@ -1,4 +1,4 @@
-# get-23andme-data
+# personal_genomes_project_sdk
 
 JavaScript SDK for retrieving and summarizing **23andMe participant and statistics data** from the [**Personal Genome Project (PGP)**](https://my.pgp-hms.org/public_genetic_data), with **browser caching using LocalForage**.
 
