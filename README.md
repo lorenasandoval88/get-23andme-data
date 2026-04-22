@@ -6,18 +6,18 @@ JavaScript SDK for retrieving and summarizing **23andMe participant and statisti
 
 ## Live Demo
 
-https://lorenasandoval88.github.io/get-23andme-data/
+https://lorenasandoval88.github.io/personal_genomes_project_sdk/
 ---
 
 ## Documentation
-Available in the [wiki](https://github.com/lorenasandoval88/get-23andme-data/wiki). 
+Available in the [wiki](https://github.com/lorenasandoval88/personal_genomes_project_sdk/wiki). 
 
 ## Quick Test (Dev Console)
 
 You can test the SDK directly in your browser console.
 
 ```javascript
-const sdk = await import("https://lorenasandoval88.github.io/get-23andme-data/dist/sdk.mjs");
+const sdk = await import("https://lorenasandoval88.github.io/personal_genomes_project_sdk/dist/sdk.mjs");
 
 const participants = await sdk.fetch23andMeParticipants(10);
 const firstProfile = participants.length ? await sdk.fetchProfile(participants[0].id) : null;
@@ -26,7 +26,7 @@ console.log({ participants, firstProfile });
 ```
 
 
-[<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />](https://lorenasandoval88.github.io/get-23andme-data/)
+[<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />](https://lorenasandoval88.github.io/personal_genomes_project_sdk/)
 
 <h2>Functionality</h2>
 <p>Key features include:</p>
@@ -40,7 +40,7 @@ console.log({ participants, firstProfile });
 
 ## Architecture
 ```
-get-23andme-data/
+personal_genomes_project_sdk/
 ├── src/
 │   ├── js/
 │   │   ├── data/get23_allUsers.js   (296 lines) - Data fetching module
