@@ -417,4 +417,12 @@ async function load23andMeFile(path, id = null) {
   throw new Error(`Unsupported final URL type from ${successSource}: ${finalUrl}`);
 }
 
+// Expose for dev console
+if (typeof window !== "undefined") {
+  window.load23andMeFile = load23andMeFile;
+  window.parse23Txt = parse23Txt;
+  window.limitStorage = limitStorage;
+  window.GET23_KEY_PREFIX = GET23_KEY_PREFIX;
+}
+
 export { JSZip, load23andMeFile, parse23Txt, limitStorage, GET23_KEY_PREFIX };

@@ -18,7 +18,8 @@ function hasSupportedGenomeVersionLabel(value = "") {
 
 //PGP search results page (HTML) for 23andMe datasets—not an API endpoint
 const dataType = "23andMe";
-const PGP_23ANDME_URL = `https://my.pgp-hms.org/public_genetic_data?utf8=%E2%9C%93&data_type=${dataType}&commit=Search`;
+const PGP_BASE_URL = "https://my.pgp-hms.org";
+const PGP_23ANDME_URL = `${PGP_BASE_URL}/public_genetic_data?utf8=%E2%9C%93&data_type=${dataType}&commit=Search`;
 const OPENHUMANS_23ANDME_URL = `https://www.openhumans.org/api/public-data/?data_type=${dataType}`; //TODO: add this 23andm data (not the original filename with chip version)
 
 const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
@@ -28,6 +29,175 @@ const ALL_PARTICIPANT_CACHE_PREFIX = `Genome:${dataType}-allParticipants-`; // p
 
 let lastAllUsersSource = null;
 const lastProfileSourceById = new Map();
+
+
+// begin data types
+async function fetchAvailableDataTypes({
+  base_url = `${PGP_BASE_URL}/public_genetic_data`,
+      url = `${WORKER_BASE}${encodeURIComponent(base_url)}`,
+
+  fetchImpl = fetch
+} = {}) {
+  const res = await fetchImpl(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch PGP data types: ${res.status} ${res.statusText}`);
+  }
+
+  const html = await res.text();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  // 1) Best case: actual <select name="data_type"> options
+  const selectOptions = [
+    ...doc.querySelectorAll('select[name="data_type"] option')
+  ]
+    .map(opt => ({
+      value: (opt.getAttribute("value") || "").trim(),
+      label: (opt.textContent || "").trim()
+    }))
+    .filter(d => d.label && d.value);
+
+  if (selectOptions.length) {
+    return dedupeByValue(selectOptions);
+  }
+
+  // 2) Fallback: links containing ?data_type=...
+  const linkOptions = [
+    ...doc.querySelectorAll('a[href*="data_type="]')
+  ]
+    .map(a => {
+      try {
+        const href = a.getAttribute("href");
+        const full = new URL(href, url);
+        const value = (full.searchParams.get("data_type") || "").trim();
+        const label = (a.textContent || "").trim();
+        return { value, label: label || value };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .filter(d => d.value);
+
+  if (linkOptions.length) {
+    return dedupeByValue(linkOptions);
+  }
+
+  // 3) Last resort: parse visible text labels
+  const text = doc.body?.textContent || "";
+  const start = text.indexOf("All data types");
+  const end = text.indexOf("Participant Published Data type Source Name Download Report");
+
+  if (start !== -1 && end !== -1 && end > start) {
+    const block = text
+      .slice(start + "All data types".length, end)
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const labels = splitDatatypeBlock(block);
+
+    return labels.map(label => ({
+      label,
+      value: normalizeDataTypeValue(label)
+    }));
+  }
+
+  return [];
+}
+
+function dedupeByValue(items) {
+  const seen = new Map();
+
+  for (const item of items) {
+    const key = item.value;
+    if (!seen.has(key)) {
+      seen.set(key, item);
+    }
+  }
+
+  return [...seen.values()];
+}
+
+function splitDatatypeBlock(block) {
+  const knownPrefixes = [
+    "biometric data - ",
+    "genetic data - ",
+    "health records - ",
+    "image - ",
+    "microbiome data",
+    "other"
+  ];
+
+  const labels = [];
+  let i = 0;
+
+  while (i < block.length) {
+    let nextPrefix = null;
+    let nextIndex = Infinity;
+
+    for (const prefix of knownPrefixes) {
+      const idx = block.indexOf(prefix, i);
+      if (idx !== -1 && idx < nextIndex) {
+        nextIndex = idx;
+        nextPrefix = prefix;
+      }
+    }
+
+    if (nextPrefix == null) break;
+
+    let followingIndex = Infinity;
+    for (const prefix of knownPrefixes) {
+      const idx = block.indexOf(prefix, nextIndex + nextPrefix.length);
+      if (idx !== -1 && idx < followingIndex) {
+        followingIndex = idx;
+      }
+    }
+
+    const label = block
+      .slice(nextIndex, followingIndex === Infinity ? block.length : followingIndex)
+      .trim();
+
+    if (label) labels.push(label);
+    i = nextIndex + label.length;
+  }
+
+  return [...new Set(labels)];
+}
+
+function normalizeDataTypeValue(label) {
+  // Converts visible labels into likely query values.
+  // You can expand this map if PGP uses different internal values.
+  const explicitMap = {
+    "genetic data - 23andMe": "23andMe",
+    "genetic data - Complete Genomics": "Complete Genomics",
+    "genetic data - Counsyl": "Counsyl",
+    "genetic data - DeCode": "DeCode",
+    "genetic data - Family Tree DNA": "Family Tree DNA",
+    "genetic data - Gencove low-pass": "Gencove low-pass",
+    "genetic data - Illumina": "Illumina",
+    "genetic data - Knome": "Knome",
+    "genetic data - Navigenics": "Navigenics",
+    "genetic data - Pathway Genomics": "Pathway Genomics",
+    "genetic data - Veritas Genetics": "Veritas Genetics",
+    "biometric data - CSV or similar": "CSV or similar",
+    "health records - CCR XML": "CCR XML",
+    "health records - PDF or text": "PDF or text",
+    "image - PNG or JPEG or similar": "PNG or JPEG or similar",
+    "microbiome data": "microbiome data",
+    "other": "other"
+  };
+
+  if (explicitMap[label]) return explicitMap[label];
+
+  // Generic fallback: remove category prefix
+  return label
+    .replace(/^genetic data - /i, "")
+    .replace(/^biometric data - /i, "")
+    .replace(/^health records - /i, "")
+    .replace(/^image - /i, "")
+    .trim();
+}
+//   end data types
+
 
 function getStorage() {
     return localforage;
@@ -112,7 +282,7 @@ async function setCachedAllParticipants(participants) {
 async function parseParticipants(html, limit, source = "unknown", options = {}) {
     const { batchSize = 10, onBatchComplete = null } = options;
     
-    console.log("***************Parsing participants from HTML source:", source);
+    //console.log("parseParticipants(html): Parsing participants from HTML source:", source);
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
@@ -121,7 +291,7 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
         rows = [...doc.querySelectorAll("table tr")];
     }
 
-    console.log("Found rows:", rows.length, rows.slice(0, 5));
+    console.log(`parseParticipants(html): Parsing participants from HTML source: ${source}. Found ${rows.length} participant rows, first 5 rows:`, rows.slice(0, 5));
 
     const participants = [];
     let resolvedFromCache = 0;
@@ -147,7 +317,7 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
         if (cachedParticipant) {
             participants.push(cachedParticipant);
             resolvedFromCache++;
-            console.log(`parseParticipants [CACHE HIT] id: ${id}, filename: ${cachedParticipant.fileName}`);
+            console.log(`parseParticipants(html): [CACHE HIT] id: ${id}, filename: ${cachedParticipant.fileName}`,cachedParticipant);
         } else {
             // Resolve actual filename from download URL
             const resolved = await resolveDownloadFilename(downloadUrl);
@@ -181,7 +351,8 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
         }
     }
     
-    console.log(`Parsed ${participants.length} participants (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork}):`, participants[0]);
+    console.log(`Parsed ${participants.length} participants (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork}):`);
+ 
     return participants;
 }
 
@@ -245,7 +416,7 @@ function parseParticipants_fast(html, limit, source = "unknown") {
  * @returns {Promise<Array>} Array of participant objects
  */
 async function fetch23andMeParticipants_fast(limit = 1100) {
-    console.log("fetch23andMeParticipants_fast-------------------")
+    //console.log("fetch23andMeParticipants_fast-------------------")
 
     // Check bulk cache first
     const cached = await getCachedAllParticipants(limit);
@@ -303,9 +474,13 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
  * @returns {Promise<Array>} Array of participant objects
  */
 async function fetch23andMeParticipants(limit = 10, options = {}) {
+    // const types = await fetchAvailableDataTypes();
+    // console.log("types-------------------:", types);
+
+
     const { batchSize = 10 } = options;
     
-    console.log("fetch23andMeParticipants-------------------")
+    //console.log("fetch23andMeParticipants-------------------")
 
     const candidates = [
         { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(PGP_23ANDME_URL)}` },
@@ -319,11 +494,12 @@ async function fetch23andMeParticipants(limit = 10, options = {}) {
 
     for (const candidate of candidates) {
         try {
-            console.log(`fetch23andMeParticipants(): Trying to fetch participants from ${candidate.name}...`);
+            // console.log(`fetch23andMeParticipants(): Trying to fetch participants from ${candidate.name}...`);
             const response = await fetch(candidate.url);
             if (response.ok) {
-                console.log(`fetch23andMeParticipants(): Successfully fetched from ${candidate.name}`);
                 html = await response.text();
+                console.log(`fetch23andMeParticipants(): Successfully fetched participants from ${candidate.name},`, `response.text()...:`, html.slice(0, 500));
+
                 usedSource = candidate.name;
                 break;
             }
@@ -378,8 +554,9 @@ async function fetchProfile(id) {
                 errors.push(`${candidate.name}: HTTP ${res.status}`);
                 continue;
             }
-            console.log(`fetchProfile(): Successfully fetched profile ${resolvedId} from ${candidate.name}`);
             const data = await res.json();
+            console.log(`fetchProfile(): Successfully fetched profile ${resolvedId} from ${candidate.name}`,data);
+
             lastProfileSourceById.set(resolvedId, candidate.name);
             await setCachedProfile(resolvedId, data);
             //console.log(`fetchProfile(): Saving profile cache in localforage: ${resolvedId}`);
@@ -582,11 +759,26 @@ async function resolveDownloadFilename(downloadUrl) {
 
 
 
+// Expose for dev console
+if (typeof window !== "undefined") {
+    window.fetchAvailableDataTypes = fetchAvailableDataTypes;
+    window.fetch23andMeParticipants = fetch23andMeParticipants;
+    window.fetch23andMeParticipants_fast = fetch23andMeParticipants_fast;
+    window.parseParticipants = parseParticipants;
+    window.parseParticipants_fast = parseParticipants_fast;
+    window.fetchProfile = fetchProfile;
+    window.getLastAllUsersSource = getLastAllUsersSource;
+    window.getLastProfileSource = getLastProfileSource;
+    window.resolveDownloadFilename = resolveDownloadFilename;
+}
+
 // Export for use as ES module
 export {
+    fetchAvailableDataTypes,
     fetch23andMeParticipants,
     fetch23andMeParticipants_fast,
-    // parseParticipants,
+    parseParticipants,
+    parseParticipants_fast,
     fetchProfile,
     getLastAllUsersSource,
     getLastProfileSource,

@@ -120,6 +120,12 @@ async function displayProfiles() {
     }
 }
 
+// Expose for dev console
+if (typeof window !== "undefined") {
+    window.displayProfiles = displayProfiles;
+    window.renderProfilesTable = renderProfilesTable;
+}
+
 export {
     displayProfiles,
     renderProfilesTable

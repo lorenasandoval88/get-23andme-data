@@ -1,7 +1,7 @@
 import localforage from "localforage";
 import Plotly from "plotly.js-dist-min";
 
-const CACHE_KEY = "pgp:23andme-stats";
+const CACHE_KEY = "Genome:23andme-stats";
 
 function getStorage() {
     return localforage;
@@ -18,26 +18,25 @@ function isCacheWithinMonths(savedAt, months = 3) {
 }
 
 async function getCachedStats() {
-    console.log("getCachedStats-------------------")
-    console.log("Checking local cache for stats summary...");
 
     const storage = getStorage();
     if (!storage) return null;
     try {
         const cached = await storage.getItem(CACHE_KEY);
         if (!cached) return null;
+        console.log("getCachedStats(): Checking local cache for stats summary...", cached);
 
         const { savedAt, stats, source } = cached;
 
         if (isCacheWithinMonths(savedAt)) {
             const age = Date.now() - new Date(savedAt).getTime();
-            console.log(`Using cached stats (${Math.round(age / (24 * 60 * 60 * 1000))} days old)`);
+            console.log(`getCachedStats(): Using cached stats summary (${Math.round(age / (24 * 60 * 60 * 1000))} days old)`);
             return { stats, source: `${source} (cached)` };
         }
-        console.log("Failed to read stats cache:expired or missing, fetching fresh data");
+        console.log("getCachedStats(): Failed to read stats cache: expired or missing, fetching fresh data");
         return null;
     } catch (e) {
-        console.warn("stats cache read error:", e);
+        console.warn("getCachedStats(): stats cache read error:", e);
         return null;
     }
 }
@@ -188,6 +187,13 @@ async function loadStats(options = {}) {
 const forceRefreshBtn = document.getElementById("forceRefreshStatsBtn");
 if (forceRefreshBtn) {
     forceRefreshBtn.addEventListener("click", () => loadStats({ forceRefresh: true }));
+}
+
+// Expose for dev console
+if (typeof window !== "undefined") {
+    window.loadStats = loadStats;
+    window.getCachedStats = getCachedStats;
+    window.setCachedStats = setCachedStats;
 }
 
 export { loadStats }

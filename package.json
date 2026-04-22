@@ -17,13 +17,9 @@
     "pgp",
     "personal-genome-project"
   ],
-  "main": "dist/sdk.cjs",
   "module": "dist/sdk.mjs",
   "exports": {
-    ".": {
-      "import": "./dist/sdk.mjs",
-      "require": "./dist/sdk.cjs"
-    }
+    ".": "./dist/sdk.mjs"
   },
   "files": [
     "dist",

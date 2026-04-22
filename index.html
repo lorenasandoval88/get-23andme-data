@@ -90,16 +90,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script type="module">
-        import { loadStats, displayProfiles } from "./dist/sdk.mjs";
+    <script type="module" src="./dist/main.mjs"></script>
 
-        window.addEventListener("load", async () => {
-            await Promise.all([
-                loadStats(),
-                displayProfiles()
-            ]);
-        });
-    </script>
 </body>
 
 </html>

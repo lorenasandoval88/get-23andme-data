@@ -54,9 +54,9 @@ personal_genomes_project_sdk/
 │   └── proxy-server.js              - Local CORS proxy
 │
 ├── dist/                            - Build outputs
-│   ├── bundle.js                    - Browser bundle (IIFE)
-│   ├── sdk.mjs                      - ESM module export
-│   └── sdk.cjs                      - CommonJS module export
+│   ├── allUsers.bundle.mjs          - All users data ESM bundle
+│   ├── loadStats.bundle.mjs         - Stats ESM bundle
+│   └── sdk.mjs                      - ESM module export
 │
 ├── sdk.js                           - Public API entrypoint
 ├── index.html                       - Web interface
@@ -71,9 +71,9 @@ personal_genomes_project_sdk/
 - `src/css/`: app styles (`styles.css`).
 - `server/`: local proxy server (`proxy-server.js`) used to bypass CORS and serve PGP-backed endpoints.
 - `dist/`: Rollup build outputs:
-  - `dist/bundle.js` for the bundled browser app.
+  - `dist/allUsers.bundle.mjs` for all-users data module output.
+  - `dist/loadStats.bundle.mjs` for stats module output.
   - `dist/sdk.mjs` for ESM SDK output.
-  - `dist/sdk.cjs` for CommonJS SDK output.
  ```
   - | Directory/File       | Purpose                                                  |
 | -------------------- | -------------------------------------------------------- |
@@ -156,9 +156,9 @@ This separation allows the system to efficiently fetch genomic data, minimize ne
 
 Run `npm run build` to generate:
 
-- `dist/bundle.js`
+- `dist/allUsers.bundle.mjs`
+- `dist/loadStats.bundle.mjs`
 - `dist/sdk.mjs`
-- `dist/sdk.cjs`
 
 ## Run
 
