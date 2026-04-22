@@ -6,11 +6,11 @@ JavaScript SDK for retrieving and summarizing **23andMe participant and statisti
 
 ## Live Demo
 
-https://lorenasandoval88.github.io/get-23andme-data/
+https://lorenasandoval88.github.io/personal_genomes_project_sdk/
 ---
 
 ## Documentation
-Available in the [wiki](https://github.com/lorenasandoval88/get-23andme-data/wiki). 
+Available in the [wiki](https://github.com/lorenasandoval88/personal_genomes_project_sdk/wiki). 
 
 ## Quick Test (Dev Console)
 
