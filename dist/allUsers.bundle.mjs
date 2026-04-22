@@ -3112,7 +3112,7 @@ async function getCachedAllParticipants(limit) {
     try {
         const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_FAST_KEY);
         if (!cached || !Array.isArray(cached.participants)) return null;
-        console.log(`getCachedAllParticipants: found ${cached.participants.length} cached participants`);
+        // console.log(`getCachedAllParticipants: found ${cached.participants.length} cached participants`);
         return cached.participants.slice(0, limit);
     } catch (error) {
         console.warn("Failed to read bulk participants cache:", error);
@@ -3128,7 +3128,7 @@ async function setCachedAllParticipants(participants) {
             participants,
             cachedAt: Date.now()
         });
-        console.log(`setCachedAllParticipants: saved ${participants.length} participants`);
+        // console.log(`setCachedAllParticipants: saved ${participants.length} participants`);
     } catch (error) {
         console.warn("Failed to save bulk participants cache:", error);
     }
@@ -3141,7 +3141,7 @@ async function getCachedAllParticipantsStandard(limit) {
     try {
         const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_STANDARD_KEY);
         if (!cached || !Array.isArray(cached.participants)) return null;
-        console.log(`getCachedAllParticipantsStandard: found ${cached.participants.length} cached participants`);
+        // console.log(`getCachedAllParticipantsStandard: found ${cached.participants.length} cached participants`);
         return cached.participants.slice(0, limit);
     } catch (error) {
         console.warn("Failed to read standard bulk participants cache:", error);
@@ -3157,7 +3157,7 @@ async function setCachedAllParticipantsStandard(participants) {
             participants,
             cachedAt: Date.now()
         });
-        console.log(`setCachedAllParticipantsStandard: saved ${participants.length} participants`);
+        // console.log(`setCachedAllParticipantsStandard: saved ${participants.length} participants`);
     } catch (error) {
         console.warn("Failed to save standard bulk participants cache:", error);
     }
@@ -3185,11 +3185,9 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
         rows = [...doc.querySelectorAll("table tr")];
     }
 
-    console.log(`parseParticipants(html): Parsing participants from HTML source: ${source}. Found ${rows.length} participant rows, first 5 rows:`, rows.slice(0, 5));
+    // console.log(`parseParticipants(html): Parsing participants from HTML source: ${source}. Found ${rows.length} participant rows, first 5 rows:`, rows.slice(0, 5));
 
     const participants = [];
-    let resolvedFromCache = 0;
-    let resolvedFromNetwork = 0;
 
     for (const row of rows) {
         if (participants.length >= limit) break;
@@ -3210,12 +3208,10 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
         
         if (cachedParticipant) {
             participants.push(cachedParticipant);
-            resolvedFromCache++;
-            console.log(`parseParticipants(html): [CACHE HIT] id: ${id}, filename: ${cachedParticipant.fileName}`,cachedParticipant);
+            // console.log(`parseParticipants(html): [CACHE HIT] id: ${id}, filename: ${cachedParticipant.fileName}`,cachedParticipant);
         } else {
             // Resolve actual filename from download URL
             const resolved = await resolveDownloadFilename(downloadUrl);
-            resolvedFromNetwork++;
             
             const participant = {
                 id,
@@ -3233,19 +3229,19 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
             // Cache the participant
             await setCachedParticipant(id, participant);
             participants.push(participant);
-            console.log(`parseParticipants [NETWORK] id: ${id}, filename: ${resolved.fileName}`);
+            // console.log(`parseParticipants [NETWORK] id: ${id}, filename: ${resolved.fileName}`);
         }
         
         // Progress callback every batchSize participants
         if (participants.length % batchSize === 0) {
-            console.log(`parseParticipants: Progress ${participants.length}/${limit} (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork})`);
+            // console.log(`parseParticipants: Progress ${participants.length}/${limit} (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork})`);
             if (onBatchComplete) {
                 await onBatchComplete([...participants]);
             }
         }
     }
     
-    console.log(`Parsed ${participants.length} participants (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork}):`);
+    // console.log(`Parsed ${participants.length} participants (cache: ${resolvedFromCache}, network: ${resolvedFromNetwork}):`);
  
     return participants;
 }
@@ -3257,7 +3253,7 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
  * @returns {Array} Array of participant objects
  */
 function parseParticipants_fast(html, limit, source = "unknown") {
-    console.log("***************Parsing participants (fast) from HTML source:", source);
+    // console.log("***************Parsing participants (fast) from HTML source:", source);
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
@@ -3316,7 +3312,7 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
     const cached = await getCachedAllParticipants(limit);
     if (cached && cached.length >= limit) {
         lastAllUsersSource = "cache";
-        console.log(`fetch23andMeParticipants_fast(): Found ${cached.length} participants from bulk cache:`, cached);
+        // console.log(`fetch23andMeParticipants_fast(): Found ${cached.length} participants from bulk cache:`, cached);
         return cached;
     }
 
@@ -3332,10 +3328,10 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
 
     for (const candidate of candidates) {
         try {
-            console.log(`fetch23andMeParticipants_fast(): Trying to fetch participants from ${candidate.name}...`);
+            // console.log(`fetch23andMeParticipants_fast(): Trying to fetch participants from ${candidate.name}...`);
             const response = await fetch(candidate.url);
             if (response.ok) {
-                console.log(`fetch23andMeParticipants_fast(): Successfully fetched from ${candidate.name}`);
+                // console.log(`fetch23andMeParticipants_fast(): Successfully fetched from ${candidate.name}`);
                 html = await response.text();
                 usedSource = candidate.name;
                 break;
@@ -3378,7 +3374,7 @@ async function fetch23andMeParticipants(limit = 10, options = {}) {
     const cached = await getCachedAllParticipantsStandard(limit);
     if (cached && cached.length >= limit) {
         lastAllUsersSource = "cache";
-        console.log(`fetch23andMeParticipants(): Found ${cached.length} participants from standard bulk cache`);
+        // console.log(`fetch23andMeParticipants(): Found ${cached.length} participants from standard bulk cache`);
         return cached;
     }
     
@@ -3400,7 +3396,7 @@ async function fetch23andMeParticipants(limit = 10, options = {}) {
             const response = await fetch(candidate.url);
             if (response.ok) {
                 html = await response.text();
-                console.log(`fetch23andMeParticipants(): Successfully fetched participants from ${candidate.name},`, `response.text()...:`, html.slice(0, 500));
+                // console.log(`fetch23andMeParticipants(): Successfully fetched participants from ${candidate.name},`, `response.text()...:`, html.slice(0, 500));
 
                 usedSource = candidate.name;
                 break;
@@ -3459,7 +3455,7 @@ async function fetchProfile(id) {
                 continue;
             }
             const data = await res.json();
-            console.log(`fetchProfile(): Successfully fetched profile ${resolvedId} from ${candidate.name}`,data);
+            // console.log(`fetchProfile(): Successfully fetched profile ${resolvedId} from ${candidate.name}`,data);
 
             lastProfileSourceById.set(resolvedId, candidate.name);
             await setCachedProfile(resolvedId, data);
@@ -3552,7 +3548,7 @@ async function resolveDownloadFilename(downloadUrl) {
 
             finalResponse = response;
             successSource = candidate.name;
-            console.log(`resolveDownloadFilename(): Success with ${candidate.name}. Final URL: ${finalUrl}`);
+            // console.log(`resolveDownloadFilename(): Success with ${candidate.name}. Final URL: ${finalUrl}`);
             break;
         } catch (err) {
             console.warn(`resolveDownloadFilename(): ${candidate.name} failed: ${err.message}`);
@@ -3573,7 +3569,7 @@ async function resolveDownloadFilename(downloadUrl) {
     if (finalUrl.endsWith(".txt")) {
         const fileName = finalUrl.split("/").pop()?.split("?")[0] || null;
         const fileExtension = "txt";
-        console.log(`resolveDownloadFilename(): Direct TXT - filename: ${fileName}`);
+        // console.log(`resolveDownloadFilename(): Direct TXT - filename: ${fileName}`);
         return { finalUrl, fileName, fileExtension };
     }
 
@@ -3606,11 +3602,11 @@ async function resolveDownloadFilename(downloadUrl) {
             if (!targetFile) {
                 // Fallback to ZIP filename itself
                 const zipFileName = finalUrl.split("/").pop()?.split("?")[0] || null;
-                console.log(`resolveDownloadFilename(): No v3/v4/v5 .txt found in ZIP, using ZIP filename: ${zipFileName}`);
+                // console.log(`resolveDownloadFilename(): No v3/v4/v5 .txt found in ZIP, using ZIP filename: ${zipFileName}`);
                 return { finalUrl, fileName: zipFileName, fileExtension: "zip" };
             }
 
-            console.log(`resolveDownloadFilename(): Found TXT inside ZIP: ${targetFile.name}`);
+            // console.log(`resolveDownloadFilename(): Found TXT inside ZIP: ${targetFile.name}`);
             return { finalUrl, fileName: targetFile.name, fileExtension: "txt" };
         } catch (err) {
             console.warn(`resolveDownloadFilename(): Failed to parse ZIP: ${err.message}`);
