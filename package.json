@@ -1,14 +1,14 @@
 {
   "type": "module",
-  "name": "get-23andme-data",
+  "name": "personal_genomes_project_sdk",
   "version": "1.0.2",
   "description": "Fetch and cache 23andMe genetic data from the Personal Genome Project (PGP)",
   "license": "MIT",
   "author": "Lorena Sandoval",
-  "homepage": "https://lorenasandoval88.github.io/get-23andme-data/",
+  "homepage": "https://lorenasandoval88.github.io/personal_genomes_project_sdk/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lorenasandoval88/get-23andme-data.git"
+    "url": "git+https://github.com/lorenasandoval88/personal_genomes_project_sdk.git"
   },
   "keywords": [
     "23andme",
