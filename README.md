@@ -1,6 +1,8 @@
 # personal_genomes_project_sdk
 
-JavaScript SDK for retrieving and summarizing **23andMe participant and statistics data** from the [**Personal Genome Project (PGP)**](https://my.pgp-hms.org/public_genetic_data), with **browser caching using LocalForage**.
+A browser-native JavaScript SDK and demo application for retrieving, caching, and exploring publicly shared 23andMe data from the [**Personal Genome Project (PGP)**](https://my.pgp-hms.org/public_genetic_data).
+
+The toolkit supports participant discovery, profile lookup, summary statistics, and browser-based loading of genotype files for downstream analysis. It is designed to run in the browser with client-side caching through LocalForage, interactive visual summaries, and simple developer-friendly APIs for working with public PGP data.
 
 ---
 
