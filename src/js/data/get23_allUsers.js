@@ -191,7 +191,7 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
  * @param {number} limit - Number of participants to return
  * @returns {Array} Array of participant objects
  */
-function parseParticipantsFast(html, limit, source = "unknown") {
+function parseParticipants_fast(html, limit, source = "unknown") {
     console.log("***************Parsing participants (fast) from HTML source:", source);
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
@@ -201,7 +201,7 @@ function parseParticipantsFast(html, limit, source = "unknown") {
         rows = [...doc.querySelectorAll("table tr")];
     }
 
-    console.log("Found rows:", rows.length);
+    // console.log("Found rows:", rows.length);
 
     const participants = [];
 
@@ -218,7 +218,7 @@ function parseParticipantsFast(html, limit, source = "unknown") {
 
         const fileName = cells[5].textContent.trim();
         const fileExtension = fileName.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
-        console.log(`parseParticipantsFast  filename: ${fileName} (download URL: ${downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : "no download link"})`);
+        // console.log(`parseParticipants_fast  filename: ${fileName} (download URL: ${downloadLink ? `https://my.pgp-hms.org${downloadLink.getAttribute("href")}` : "no download link"})`);
         const participant = {
             id: participantLink.textContent.trim(),
             profileUrl: `https://my.pgp-hms.org${participantLink.getAttribute("href")}`,
@@ -233,7 +233,7 @@ function parseParticipantsFast(html, limit, source = "unknown") {
         };
         participants.push(participant);
     }
-    console.log(`Parsed ${participants.length} participants (fast):`, participants[0]);
+    // console.log(`Parsed ${participants.length} participants (fast):`, participants[0]);
     return participants;
 }
 
@@ -251,7 +251,7 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
     const cached = await getCachedAllParticipants(limit);
     if (cached && cached.length >= limit) {
         lastAllUsersSource = "cache";
-        console.log(`Returning ${cached.length} participants from bulk cache`);
+        console.log(`fetch23andMeParticipants_fast(): Found ${cached.length} participants from bulk cache:`, cached);
         return cached;
     }
 
@@ -267,10 +267,10 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
 
     for (const candidate of candidates) {
         try {
-            console.log(`Trying to fetch participants from ${candidate.name}...`);
+            console.log(`fetch23andMeParticipants_fast(): Trying to fetch participants from ${candidate.name}...`);
             const response = await fetch(candidate.url);
             if (response.ok) {
-                console.log(`Successfully fetched from ${candidate.name}`);
+                console.log(`fetch23andMeParticipants_fast(): Successfully fetched from ${candidate.name}`);
                 html = await response.text();
                 usedSource = candidate.name;
                 break;
@@ -285,7 +285,7 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
     }
     lastAllUsersSource = usedSource;
     
-    const participants = parseParticipantsFast(html, limit, lastAllUsersSource);
+    const participants = parseParticipants_fast(html, limit, lastAllUsersSource);
     
     // Save to bulk cache
     await setCachedAllParticipants(participants);
@@ -319,10 +319,10 @@ async function fetch23andMeParticipants(limit = 10, options = {}) {
 
     for (const candidate of candidates) {
         try {
-            console.log(`Trying to fetch participants from ${candidate.name}...`);
+            console.log(`fetch23andMeParticipants(): Trying to fetch participants from ${candidate.name}...`);
             const response = await fetch(candidate.url);
             if (response.ok) {
-                console.log(`Successfully fetched from ${candidate.name}`);
+                console.log(`fetch23andMeParticipants(): Successfully fetched from ${candidate.name}`);
                 html = await response.text();
                 usedSource = candidate.name;
                 break;
@@ -365,7 +365,7 @@ async function fetchProfile(id) {
 
     const errors = [];
     for (const candidate of candidates) {
-        console.log(`Trying to fetch profile ${resolvedId} from ${candidate.name}...`);
+        // console.log(`fetchProfile(): Trying to fetch profile ${resolvedId} from ${candidate.name}...`);
 
         try {
             const res = await fetch(candidate.url, {
@@ -378,11 +378,11 @@ async function fetchProfile(id) {
                 errors.push(`${candidate.name}: HTTP ${res.status}`);
                 continue;
             }
-            console.log(`Successfully fetched profile ${resolvedId} from ${candidate.name}`);
+            console.log(`fetchProfile(): Successfully fetched profile ${resolvedId} from ${candidate.name}`);
             const data = await res.json();
             lastProfileSourceById.set(resolvedId, candidate.name);
             await setCachedProfile(resolvedId, data);
-            console.log(`Saving profile cache in localforage: ${resolvedId}`);
+            //console.log(`fetchProfile(): Saving profile cache in localforage: ${resolvedId}`);
 
             return data;
         } catch (error) {
@@ -456,7 +456,7 @@ async function resolveDownloadFilename(downloadUrl) {
 
     for (const candidate of candidates) {
         try {
-            console.log(`resolveDownloadFilename(): Trying ${candidate.name}...from url ${candidate.url}`);
+            // console.log(`resolveDownloadFilename(): Trying ${candidate.name}...from url ${candidate.url}`);
             const response = await fetch(candidate.url);
 
             if (!response.ok) {
@@ -516,7 +516,7 @@ async function resolveDownloadFilename(downloadUrl) {
 
             const zip = await JSZip.loadAsync(buffer);
             const zipNames = Object.keys(zip.files);
-            console.log("resolveDownloadFilename(): ZIP entries:", zipNames);
+            // console.log("resolveDownloadFilename(): ZIP entries:", zipNames);
 
             const targetFile = zipNames
                 .map(name => zip.files[name])
@@ -564,7 +564,7 @@ async function resolveDownloadFilename(downloadUrl) {
             const fileName = resolvedFileUrl.split("/").pop()?.split("?")[0] || null;
             const fileExtension = fileName?.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
 
-            console.log(`resolveDownloadFilename(): Directory listing resolved to: ${fileName}`);
+            // console.log(`resolveDownloadFilename(): Directory listing resolved to: ${fileName}`);
             return { finalUrl: resolvedFileUrl, fileName, fileExtension };
         } catch (err) {
             console.warn(`resolveDownloadFilename(): Failed to parse directory listing: ${err.message}`);
@@ -576,7 +576,7 @@ async function resolveDownloadFilename(downloadUrl) {
     const fileName = finalUrl.split("/").pop()?.split("?")[0] || null;
     const fileExtension = fileName?.match(/\.(txt|zip)$/i)?.[1]?.toLowerCase() || null;
 
-    console.log(`resolveDownloadFilename(): Fallback - extracted filename: ${fileName}, extension: ${fileExtension}`);
+    // console.log(`resolveDownloadFilename(): Fallback - extracted filename: ${fileName}, extension: ${fileExtension}`);
     return { finalUrl, fileName, fileExtension };
 }
 
