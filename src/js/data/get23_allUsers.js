@@ -26,6 +26,8 @@ const WORKER_BASE = "https://lorena-api.lorenasandoval88.workers.dev/?url=";
 const PARTICIPANT_CACHE_PREFIX = `Genome:${dataType}-participant-`; // per-participant cache (full metadata + resolved filename)
 const PROFILE_CACHE_PREFIX = `Genome:${dataType}-profile-`;
 const ALL_PARTICIPANT_CACHE_PREFIX = `Genome:${dataType}-allParticipants-`; // per-participant cache (full metadata + resolved filename)
+const ALL_PARTICIPANT_CACHE_FAST_KEY = `${ALL_PARTICIPANT_CACHE_PREFIX}fast`;
+const ALL_PARTICIPANT_CACHE_STANDARD_KEY = `${ALL_PARTICIPANT_CACHE_PREFIX}standard`;
 
 let lastAllUsersSource = null;
 const lastProfileSourceById = new Map();
@@ -245,7 +247,7 @@ async function getCachedAllParticipants(limit) {
     const storage = getStorage();
     if (!storage) return null;
     try {
-        const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_PREFIX + "fast");
+        const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_FAST_KEY);
         if (!cached || !Array.isArray(cached.participants)) return null;
         console.log(`getCachedAllParticipants: found ${cached.participants.length} cached participants`);
         return cached.participants.slice(0, limit);
@@ -259,13 +261,42 @@ async function setCachedAllParticipants(participants) {
     const storage = getStorage();
     if (!storage) return;
     try {
-        await storage.setItem(ALL_PARTICIPANT_CACHE_PREFIX + "fast", {
+        await storage.setItem(ALL_PARTICIPANT_CACHE_FAST_KEY, {
             participants,
             cachedAt: Date.now()
         });
         console.log(`setCachedAllParticipants: saved ${participants.length} participants`);
     } catch (error) {
         console.warn("Failed to save bulk participants cache:", error);
+    }
+}
+
+// Bulk cache helpers for standard version (all participants under one key)
+async function getCachedAllParticipantsStandard(limit) {
+    const storage = getStorage();
+    if (!storage) return null;
+    try {
+        const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_STANDARD_KEY);
+        if (!cached || !Array.isArray(cached.participants)) return null;
+        console.log(`getCachedAllParticipantsStandard: found ${cached.participants.length} cached participants`);
+        return cached.participants.slice(0, limit);
+    } catch (error) {
+        console.warn("Failed to read standard bulk participants cache:", error);
+        return null;
+    }
+}
+
+async function setCachedAllParticipantsStandard(participants) {
+    const storage = getStorage();
+    if (!storage) return;
+    try {
+        await storage.setItem(ALL_PARTICIPANT_CACHE_STANDARD_KEY, {
+            participants,
+            cachedAt: Date.now()
+        });
+        console.log(`setCachedAllParticipantsStandard: saved ${participants.length} participants`);
+    } catch (error) {
+        console.warn("Failed to save standard bulk participants cache:", error);
     }
 }
 
@@ -466,7 +497,8 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
 
 /**
  * Fetch a list of PGP 23andMe participants with per-participant caching.
- * Always fetches HTML to get participant list, but uses cache for filename resolution.
+ * Uses cache-first loading from a standard bulk cache and falls back to HTML fetching.
+ * Parsed participants are cached in bulk and also cached individually for filename resolution.
  * Each participant is cached individually - "Load more" naturally works.
  * @param {number} limit - Number of participants to return (default: 10)
  * @param {Object} options - Options
@@ -479,6 +511,13 @@ async function fetch23andMeParticipants(limit = 10, options = {}) {
 
 
     const { batchSize = 10 } = options;
+
+    const cached = await getCachedAllParticipantsStandard(limit);
+    if (cached && cached.length >= limit) {
+        lastAllUsersSource = "cache";
+        console.log(`fetch23andMeParticipants(): Found ${cached.length} participants from standard bulk cache`);
+        return cached;
+    }
     
     //console.log("fetch23andMeParticipants-------------------")
 
@@ -516,7 +555,9 @@ async function fetch23andMeParticipants(limit = 10, options = {}) {
     lastAllUsersSource = usedSource;
     
     // Parse - each participant is cached individually
-    return parseParticipants(html, limit, lastAllUsersSource, { batchSize });
+    const participants = await parseParticipants(html, limit, lastAllUsersSource, { batchSize });
+    await setCachedAllParticipantsStandard(participants);
+    return participants;
 }
 
 // Fetch a PGP profile by ID using cache if available, otherwise try multiple proxy endpoints until successful, then cache and return the result.
