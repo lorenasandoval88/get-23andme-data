@@ -26,7 +26,7 @@ async function limitStorage(ids = []){
     });
 
     if (totalBytes < MAX_GET23_CACHE_BYTES) {
-        // console.log(`Genomic cache limit: ${(MAX_GET23_CACHE_BYTES / 1024 / 1024).toFixed(0)} MB. Current usage: ${(totalBytes / 1024 / 1024).toFixed(2)} MB. No eviction needed.`);
+        console.log(`Genomic cache limit: ${(MAX_GET23_CACHE_BYTES / 1024 / 1024).toFixed(0)} MB. Current usage: ${(totalBytes / 1024 / 1024).toFixed(2)} MB. No eviction needed.`);
         return;
     }
 
@@ -47,7 +47,7 @@ async function limitStorage(ids = []){
         await localforage.removeItem(entry.key);
         totalBytes -= entry.entryBytes;
     }
-    // console.log(`Genomic cache size after eviction: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`Genomic cache size after eviction: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
 
 }
 
@@ -86,7 +86,7 @@ async function parse23Txt(txt, url) {
 	if (n === 0) {
 		throw new Error(`Invalid 23andMe file format: missing header in ${url}`);
 	}
-// console.log(`running parse23Txt for url ${url}, total rows: ${rows.length}, header rows: ${n}`);
+console.log(`running parse23Txt for url ${url}, total rows: ${rows.length}, header rows: ${n}`);
 	obj.filename = url.split('/').pop() || "unknown_filename";
   obj.meta = rows.slice(0, n - 1).join('\r\n');
 	obj.cols = rows[n - 1].replace(/^#\s*/, '').split(/\t/);
@@ -107,7 +107,7 @@ async function parse23Txt(txt, url) {
  * @returns {Promise<Object>} Parsed genome data
  */
 async function load23andMeFile(path, id = null) {
-  // console.log(`load23andMeFile(): Starting to load data from path: ${path} with id: ${id}`);
+  console.log(`load23andMeFile(): Starting to load data from path: ${path} with id: ${id}`);
   // Helper to cache and return parsed data
   async function cacheAndReturn(parsedData, cacheKeyValue, idValue) {
     try {
@@ -115,7 +115,7 @@ async function load23andMeFile(path, id = null) {
         data: parsedData,
         cachedAt: Date.now()
       });
-      // console.log(`load23andMeFile(): Successfully cached data for ${cacheKeyValue}`);
+      console.log(`load23andMeFile(): Successfully cached data for ${cacheKeyValue}`);
       await limitStorage([idValue]);
     } catch (err) {
       console.warn(`load23andMeFile(): Failed to cache ${cacheKeyValue}:`, err);
@@ -135,7 +135,7 @@ async function load23andMeFile(path, id = null) {
 
   if (isFileInstance || isFileLikeObject || isFileListLike) {
     const file = isFileListLike ? path[0] : path;
-    // console.log(`load23andMeFile(): Detected file input for ${file.name}:`, file);
+    console.log(`load23andMeFile(): Detected file input for ${file.name}:`, file);
 //    console.log(`load23andMeFile(): File object received: ${file.name}`);
     assertSupportedGenomeVersionLabel(file.name, "upload file");
 
@@ -145,7 +145,7 @@ async function load23andMeFile(path, id = null) {
     try {
       const cached = await localforage.getItem(fileCacheKey);
       if (cached && cached.data) {
-        // console.log(`load23andMeFile(): Cache hit for ${fileCacheKey}`);
+        console.log(`load23andMeFile(): Cache hit for ${fileCacheKey}`);
         return cached.data;
       }
     } catch (err) {
@@ -162,7 +162,7 @@ async function load23andMeFile(path, id = null) {
     throw new TypeError("load23andMeFile expects a path/URL string or a File/FileList object");
   }
 
-  // console.log(`load23andMeFile(): Loading genomic data from ${path}...`);
+  console.log(`load23andMeFile(): Loading genomic data from ${path}...`);
 
   // Extract ID from path if not provided (e.g., from PGP URL)
   if (!id) {
@@ -176,14 +176,14 @@ async function load23andMeFile(path, id = null) {
   try {
     const cached = await localforage.getItem(cacheKey);
     if (cached && cached.data) {
-      // console.log(`load23andMeFile(): Cache hit for ${cacheKey}`);
+      console.log(`load23andMeFile(): Cache hit for ${cacheKey}`);
       return cached.data;
     }
   } catch (err) {
     console.warn(`load23andMeFile(): Cache read failed for ${cacheKey}:`, err);
   }
 
-  // console.log(`load23andMeFile(): Cache miss for ${cacheKey}, fetching...`);
+  console.log(`load23andMeFile(): Cache miss for ${cacheKey}, fetching...`);
 
 
 
@@ -228,13 +228,13 @@ async function load23andMeFile(path, id = null) {
 
   for (const candidate of candidates) {
     try {
-      // console.log(`load23andMeFile(): Trying ${candidate.name}...from url ${candidate.url}`);
+      console.log(`load23andMeFile(): Trying ${candidate.name}...from url ${candidate.url}`);
       const response = await fetch(candidate.url);
 
-      // console.log(
-      //   `load23andMeFile(): Received response from ${candidate.name}: HTTP ${response.status}`,
-      //   response
-      // );
+      console.log(
+        `load23andMeFile(): Received response from ${candidate.name}: HTTP ${response.status}`,
+        response
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -252,7 +252,7 @@ async function load23andMeFile(path, id = null) {
       // 👇 get header FIRST
        finalResponse = response;
       finalUrl = exposedFinalUrl;
-      // console.log(`load23andMeFile(): Successfully fetched from ${candidate.name}. Final URL: ${finalUrl}, Content-Type: ${contentType}`);
+      console.log(`load23andMeFile(): Successfully fetched from ${candidate.name}. Final URL: ${finalUrl}, Content-Type: ${contentType}`);
       successSource = candidate.name;
       break;
 
@@ -271,7 +271,7 @@ async function load23andMeFile(path, id = null) {
     finalUrl = finalResponse.url;
   }
 
-  // console.log(`load23andMeFile(): Success with ${successSource} with final URL: ${finalUrl}`);
+  console.log(`load23andMeFile(): Success with ${successSource} with final URL: ${finalUrl}`);
 
   // ------------------------------------------------------------
   // Route by final URL type
@@ -286,7 +286,7 @@ async function load23andMeFile(path, id = null) {
       throw new Error(`TXT response from ${successSource} is empty`);
     }
 
-    // console.log(`load23andMeFile(): Loaded direct TXT from ${successSource}`);
+    console.log(`load23andMeFile(): Loaded direct TXT from ${successSource}`);
     return cacheAndReturn(await parse23Txt(txt, finalUrl), cacheKey, id);
   }
 
@@ -298,7 +298,7 @@ async function load23andMeFile(path, id = null) {
       throw new Error(`ZIP response from ${successSource} is empty`);
     }
 
-    // console.log(`load23andMeFile(): Loaded ZIP buffer from ${successSource}`, buffer);
+    console.log(`load23andMeFile(): Loaded ZIP buffer from ${successSource}`, buffer);
 
     const bytes = new Uint8Array(buffer);
     const isZipBuffer = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
@@ -309,11 +309,11 @@ async function load23andMeFile(path, id = null) {
       throw new Error(`Response from ${successSource} is not a ZIP archive`);
     }
 
-    // console.log(`load23andMeFile(): About to call JSZip.loadAsync, buffer size: ${buffer.byteLength}`);
+    console.log(`load23andMeFile(): About to call JSZip.loadAsync, buffer size: ${buffer.byteLength}`);
     const zip = await JSZip.loadAsync(buffer);
 
     const zipNames = Object.keys(zip.files);
-    // console.log("load23andMeFile(): ZIP entries:", zipNames);
+    console.log("load23andMeFile(): ZIP entries:", zipNames);
 
     const targetFile = zipNames
       .map(name => zip.files[name])
@@ -323,7 +323,7 @@ async function load23andMeFile(path, id = null) {
       throw new Error(`No .txt file containing v3, v4, or v5 found inside ZIP from ${path}`);
     }
 
-    // console.log(`load23andMeFile(): Extracting file from ZIP: ${targetFile.name}`);
+    console.log(`load23andMeFile(): Extracting file from ZIP: ${targetFile.name}`);
 
     const txt = await targetFile.async("string");
 
@@ -359,7 +359,7 @@ async function load23andMeFile(path, id = null) {
     }
 
     const resolvedFileUrl = new URL(preferredHref, finalUrl).href;
-    // console.log(`get23_loadTxts.js: Resolved file from directory: ${resolvedFileUrl}`);
+    console.log(`get23_loadTxts.js: Resolved file from directory: ${resolvedFileUrl}`);
 
     const nestedResponse = await fetch(resolvedFileUrl);
 
@@ -396,7 +396,7 @@ async function load23andMeFile(path, id = null) {
 
       const zip = await JSZip.loadAsync(buffer);
       const zipNames = Object.keys(zip.files);
-      // console.log("get23_loadTxts.js: Nested ZIP entries:", zipNames);
+      console.log("get23_loadTxts.js: Nested ZIP entries:", zipNames);
 
       const targetFile = zipNames
         .map(name => zip.files[name])
