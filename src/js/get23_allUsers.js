@@ -29,6 +29,8 @@ const ALL_PARTICIPANT_CACHE_PREFIX = `Genome:${dataType}-allParticipants-`; // p
 const ALL_PARTICIPANT_CACHE_FAST_KEY = `${ALL_PARTICIPANT_CACHE_PREFIX}fast`;
 const ALL_PARTICIPANT_CACHE_STANDARD_KEY = `${ALL_PARTICIPANT_CACHE_PREFIX}standard`;
 
+
+
 let lastAllUsersSource = null;
 const lastProfileSourceById = new Map();
 
@@ -243,25 +245,25 @@ async function setCachedParticipant(id, participant) {
 }
 
 // Bulk cache helpers for fast version (all participants under one key)
-async function getCachedAllParticipants(limit) {
+async function getCachedAllParticipants_fast(key = ALL_PARTICIPANT_CACHE_FAST_KEY) {
     const storage = getStorage();
     if (!storage) return null;
     try {
-        const cached = await storage.getItem(ALL_PARTICIPANT_CACHE_FAST_KEY);
+        const cached = await storage.getItem(key);
         if (!cached || !Array.isArray(cached.participants)) return null;
         // console.log(`getCachedAllParticipants: found ${cached.participants.length} cached participants`);
-        return cached.participants.slice(0, limit);
+        return cached.participants;
     } catch (error) {
         console.warn("Failed to read bulk participants cache:", error);
         return null;
     }
 }
 
-async function setCachedAllParticipants(participants) {
+async function setCachedAllParticipants(participants, key = ALL_PARTICIPANT_CACHE_FAST_KEY) {
     const storage = getStorage();
     if (!storage) return;
     try {
-        await storage.setItem(ALL_PARTICIPANT_CACHE_FAST_KEY, {
+        await storage.setItem(key, {
             participants,
             cachedAt: Date.now()
         });
@@ -393,7 +395,7 @@ async function parseParticipants(html, limit, source = "unknown", options = {}) 
  * @param {number} limit - Number of participants to return
  * @returns {Array} Array of participant objects
  */
-function parseParticipants_fast(html, limit, source = "unknown") {
+function parseParticipants_fast(html, source = "unknown") {
     // console.log("***************Parsing participants (fast) from HTML source:", source);
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
@@ -408,7 +410,6 @@ function parseParticipants_fast(html, limit, source = "unknown") {
     const participants = [];
 
     for (const row of rows) {
-        if (participants.length >= limit) break;
 
         const cells = row.querySelectorAll("td");
         if (cells.length < 7) continue;
@@ -446,22 +447,30 @@ function parseParticipants_fast(html, limit, source = "unknown") {
  * @param {number} limit - Number of participants to return (default: 1100)
  * @returns {Promise<Array>} Array of participant objects
  */
-async function fetch23andMeParticipants_fast(limit = 1100) {
-    //console.log("fetch23andMeParticipants_fast-------------------")
+async function fetch23andMeParticipants_fast(dataType = "23andMe") {
+/**
+ * Fetch a list of PGP 23andMe participants (fast version - no filename resolution)
+ * Uses bulk cache under ALL_PARTICIPANT_CACHE_PREFIX - all participants stored under one key.
+ * Returns cached data if available and sufficient, otherwise fetches fresh HTML.
+ * @param {number} limit - Number of participants to return (default: 1100)
+ * @returns {Promise<Array>} Array of participant objects
+ */
+    const pgpUrl = `${PGP_BASE_URL}/public_genetic_data?utf8=%E2%9C%93&data_type=${encodeURIComponent(dataType)}&commit=Search`;
+    const cacheKey = `Genome:${dataType}-allParticipants-fast`;
 
     // Check bulk cache first
-    const cached = await getCachedAllParticipants(limit);
-    if (cached && cached.length >= limit) {
+    const cached = await getCachedAllParticipants_fast(cacheKey);
+    if (cached && cached.length > 0) {
         lastAllUsersSource = "cache";
         // console.log(`fetch23andMeParticipants_fast(): Found ${cached.length} participants from bulk cache:`, cached);
         return cached;
     }
 
     const candidates = [
-        { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(PGP_23ANDME_URL)}` },
+        { name: "cf-worker", url: `${WORKER_BASE}${encodeURIComponent(pgpUrl)}` },
         { name: "local-proxy", url: "http://localhost:3000/pgp-participants" },
-        { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(PGP_23ANDME_URL)}` },
-        { name: "corsproxy", url: `https://corsproxy.io/?${PGP_23ANDME_URL}` }
+        { name: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(pgpUrl)}` },
+        { name: "corsproxy", url: `https://corsproxy.io/?${pgpUrl}` }
     ];
     let html = null;
     let usedSource = null;
@@ -487,10 +496,10 @@ async function fetch23andMeParticipants_fast(limit = 1100) {
     }
     lastAllUsersSource = usedSource;
     
-    const participants = parseParticipants_fast(html, limit, lastAllUsersSource);
+    const participants = parseParticipants_fast(html, lastAllUsersSource);
     
     // Save to bulk cache
-    await setCachedAllParticipants(participants);
+    await setCachedAllParticipants(participants, cacheKey);
     
     return participants;
 }

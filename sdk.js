@@ -14,4 +14,4 @@ export { fetchAvailableDataTypes,
         getLastAllUsersSource,
         getLastProfileSource
 
-      } from './src/js/data/get23_allUsers.js';
+      } from './src/js/get23_allUsers.js';

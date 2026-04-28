@@ -21,7 +21,7 @@ export default [
   },
   // All users data module (ESM bundle)
   {
-    input: 'src/js/data/get23_allUsers.js',
+    input: 'src/js/get23_allUsers.js',
     output: {
       file: 'dist/allUsers.bundle.mjs',
       format: 'es',

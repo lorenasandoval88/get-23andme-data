@@ -3,7 +3,7 @@ import {
     fetchProfile,
     getLastAllUsersSource,
     getLastProfileSource
-} from './data/get23_allUsers.js';
+} from './get23_allUsers.js';
 
 function renderProfilesTable(profiles) {
     const container = document.getElementById('profilesTable');
