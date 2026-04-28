@@ -1,5 +1,5 @@
 import {
-    fetch23andMeParticipants_fast,
+    allUsersMetaDataByType_fast,
     fetchProfile,
     getLastAllUsersSource,
     getLastProfileSource
@@ -69,7 +69,7 @@ async function displayProfiles() {
     if (sourceStatusEl) sourceStatusEl.textContent = 'Source: checking...';
 
     try {
-        const participants = await fetch23andMeParticipants_fast(10);
+        const participants = await allUsersMetaDataByType_fast(10);
         const participantsSource = getLastAllUsersSource();
         const participants_ids = [...new Set(participants.map(p => p.id))].slice(0, 10);
 
