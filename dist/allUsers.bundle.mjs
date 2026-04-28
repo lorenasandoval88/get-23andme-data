@@ -3306,7 +3306,7 @@ function parseParticipants_fast(html, source = "unknown") {
  * @param {number} limit - Number of participants to return (default: 1100)
  * @returns {Promise<Array>} Array of participant objects
  */
-async function fetch23andMeParticipants_fast(dataType = "23andMe") {
+async function allUsersMetaDataByType_fast(dataType = "23andMe") {
 /**
  * Fetch a list of PGP 23andMe participants (fast version - no filename resolution)
  * Uses bulk cache under ALL_PARTICIPANT_CACHE_PREFIX - all participants stored under one key.
@@ -3672,7 +3672,7 @@ async function resolveDownloadFilename(downloadUrl) {
 if (typeof window !== "undefined") {
     window.fetchAvailableDataTypes = fetchAvailableDataTypes;
     window.fetch23andMeParticipants = fetch23andMeParticipants;
-    window.fetch23andMeParticipants_fast = fetch23andMeParticipants_fast;
+    window.allUsersMetaDataByType_fast = allUsersMetaDataByType_fast;
     window.parseParticipants = parseParticipants;
     window.parseParticipants_fast = parseParticipants_fast;
     window.fetchProfile = fetchProfile;
@@ -3721,5 +3721,5 @@ if (typeof window !== "undefined") {
 //   return all;
 // }
 
-export { fetch23andMeParticipants, fetch23andMeParticipants_fast, fetchAvailableDataTypes, fetchProfile, getLastAllUsersSource, getLastProfileSource, parseParticipants, parseParticipants_fast, resolveDownloadFilename };
+export { allUsersMetaDataByType_fast, fetch23andMeParticipants, fetchAvailableDataTypes, fetchProfile, getLastAllUsersSource, getLastProfileSource, parseParticipants, parseParticipants_fast, resolveDownloadFilename };
 //# sourceMappingURL=allUsers.bundle.mjs.map
