@@ -20,7 +20,7 @@ async function limitStorage(ids = []) {
       key,
       value
     });
-    const createdAt = Number(value ? .cachedAt) || 0;
+    const createdAt = Number(value?.cachedAt) || 0;
     const id = key.slice(GET23_KEY_PREFIX.length);
 
     entries.push({
