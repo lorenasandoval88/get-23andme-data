@@ -107,7 +107,7 @@ console.log(`running parse23Txt for url ${url}, total rows: ${rows.length}, head
  * @returns {Promise<Object>} Parsed genome data
  */
 async function load23andMeFile(path, id = null) {
-  console.log(`load23andMeFile(): Starting to load data from path: ${path} with id: ${id}`);
+  console.log(`load23andMeFile(): Starting to load data data with id: ${id}`);
   // Helper to cache and return parsed data
   async function cacheAndReturn(parsedData, cacheKeyValue, idValue) {
     try {
@@ -162,7 +162,7 @@ async function load23andMeFile(path, id = null) {
     throw new TypeError("load23andMeFile expects a path/URL string or a File/FileList object");
   }
 
-  console.log(`load23andMeFile(): Loading genomic data from ${path}...`);
+  //console.log(`load23andMeFile(): Loading genomic data from ${path}...`);
 
   // Extract ID from path if not provided (e.g., from PGP URL)
   if (!id) {
@@ -176,7 +176,7 @@ async function load23andMeFile(path, id = null) {
   try {
     const cached = await localforage.getItem(cacheKey);
     if (cached && cached.data) {
-      console.log(`load23andMeFile(): Cache hit for ${cacheKey}`);
+      console.log(`load23andMeFile(): Cache hit for ${cacheKey}`,cached);
       return cached.data;
     }
   } catch (err) {
