@@ -112,12 +112,17 @@ async function parse23Txt(txt, url) {
  * Load and parse a local 23andMe file.
  * @param {string} path - Path to the file (local .txt or remote PGP URL)
  * @param {string} [id] - Optional ID for caching (extracted from path if not provided)
+ * @param {boolean} [cache=true] - Whether to read/write local cache
  * @returns {Promise<Object>} Parsed genome data
  */
-async function load23andMeFile(path, id = null) {
+async function load23andMeFile(path, id = null, cache = true) {
   //console.log(`load23andMeFile(): Starting to load data data with id: ${id}`);
   // Helper to cache and return parsed data
   async function cacheAndReturn(parsedData, cacheKeyValue, idValue) {
+    if (!cache) {
+      return parsedData;
+    }
+
     try {
       await localforage.setItem(cacheKeyValue, {
         data: parsedData,
@@ -149,14 +154,16 @@ async function load23andMeFile(path, id = null) {
     const fileId = id || file.name;
     const fileCacheKey = GET23_KEY_PREFIX + fileId;
 
-    try {
-      const cached = await localforage.getItem(fileCacheKey);
-      if (cached && cached.data) {
-        console.log(`load23andMeFile(): Cache hit for ${fileCacheKey}`);
-        return cached.data;
+    if (cache) {
+      try {
+        const cached = await localforage.getItem(fileCacheKey);
+        if (cached && cached.data) {
+          console.log(`load23andMeFile(): Cache hit for ${fileCacheKey}`);
+          return cached.data;
+        }
+      } catch (err) {
+        console.warn(`load23andMeFile(): Cache read failed for ${fileCacheKey}:`, err);
       }
-    } catch (err) {
-      console.warn(`load23andMeFile(): Cache read failed for ${fileCacheKey}:`, err);
     }
 
     const txt = await file.text();
@@ -180,14 +187,16 @@ async function load23andMeFile(path, id = null) {
   const cacheKey = GET23_KEY_PREFIX + id;
 
   // Check localforage for cached data
-  try {
-    const cached = await localforage.getItem(cacheKey);
-    if (cached && cached.data) {
-      console.log(`load23andMeFile(): Cache hit for ${cacheKey}`, cached);
-      return cached.data;
+  if (cache) {
+    try {
+      const cached = await localforage.getItem(cacheKey);
+      if (cached && cached.data) {
+        console.log(`load23andMeFile(): Cache hit for ${cacheKey}`, cached);
+        return cached.data;
+      }
+    } catch (err) {
+      console.warn(`load23andMeFile(): Cache read failed for ${cacheKey}:`, err);
     }
-  } catch (err) {
-    console.warn(`load23andMeFile(): Cache read failed for ${cacheKey}:`, err);
   }
 
   console.log(`load23andMeFile(): Cache miss for ${cacheKey}, fetching...`);

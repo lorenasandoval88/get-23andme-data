@@ -111,6 +111,7 @@ These functions are exported and can be accessed through the SDK.
 | `fetchProfile(id)` | `/src/js/data/get23_allUsers.js` | async | Retrieves the profile JSON for a specific participant. |
 | `getLastAllUsersSource()` | `/src/js/data/get23_allUsers.js` | sync | Returns the source of the last participant dataset retrieval (cache or network). |
 | `getLastProfileSource()` | `/src/js/data/get23_allUsers.js` | sync | Returns the source of the last profile retrieval. |
+| `load23andMeFile(path, id, cache)` | `/src/js/get23_loadTxts.js` | async | Loads and parses a 23andMe TXT/ZIP source. Set `cache=false` to bypass LocalForage reads/writes. |
 | `loadStats()` | `/src/js/get23_loadStats.js` | async | Loads statistics about available genetic datasets (exposed through `sdk.js`). |
 
 ---
@@ -152,6 +153,25 @@ The architecture separates concerns into three layers:
 - **UI Layer** – renders participant information in the browser
 
 This separation allows the system to efficiently fetch genomic data, minimize network requests through caching, and maintain a responsive browser-based interface.
+
+
+## load23andMeFile Usage
+
+```javascript
+const sdk = await import("https://lorenasandoval88.github.io/personal_genomes_project_sdk/dist/sdk.mjs");
+
+// Default behavior (cache enabled)
+const parsedA = await sdk.load23andMeFile(pathOrUrl, "hu123ABC");
+
+// Disable cache for this call only
+const parsedB = await sdk.load23andMeFile(pathOrUrl, "hu123ABC", false);
+```
+
+Parameter summary:
+
+- `path`: required (`string` URL/path or `File`/`FileList`)
+- `id`: optional cache key suffix
+- `cache`: optional boolean, defaults to `true`
 
 
 ## Build
