@@ -2,11 +2,17 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 
-const plugins = [
+const browserPlugins = [
       resolve({ browser: true , preferBuiltins: false      }),
       commonjs(),
       json()
-    ]
+    ];
+
+const nodePlugins = [
+      resolve({ browser: false, preferBuiltins: true }),
+      commonjs(),
+      json()
+    ];
 
 export default [
   // App bootstrap bundle (ESM)
@@ -17,7 +23,7 @@ export default [
       format: 'es',
       sourcemap: true
     },
-    plugins
+    plugins: browserPlugins
   },
   // All users data module (ESM bundle)
   {
@@ -27,7 +33,7 @@ export default [
       format: 'es',
       sourcemap: true
     },
-    plugins
+    plugins: browserPlugins
   },
   // Stats module (ESM bundle)
   {
@@ -37,7 +43,7 @@ export default [
       format: 'es',
       sourcemap: true
     },
-    plugins
+    plugins: browserPlugins
   },
   // ESM module
   {
@@ -47,6 +53,16 @@ export default [
       format: 'es',
       sourcemap: true
     },
-    plugins
+    plugins: browserPlugins
+  },
+  // Node-safe SDK module
+  {
+    input: 'cloud_sdk.mjs',
+    output: {
+      file: 'dist/pgp-node.mjs',
+      format: 'es',
+      sourcemap: true
+    },
+    plugins: nodePlugins
   }
 ];

@@ -19,7 +19,8 @@
   ],
   "module": "dist/sdk.mjs",
   "exports": {
-    ".": "./dist/sdk.mjs"
+    ".": "./dist/sdk.mjs",
+    "./node": "./dist/pgp-node.mjs"
   },
   "files": [
     "dist",

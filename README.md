@@ -181,6 +181,25 @@ Run `npm run build` to generate:
 - `dist/allUsers.bundle.mjs`
 - `dist/loadStats.bundle.mjs`
 - `dist/sdk.mjs`
+- `dist/pgp-node.mjs`
+
+SDK build targets:
+
+- Browser SDK: `dist/sdk.mjs`
+  - Includes browser-focused modules and caching/UI helpers.
+- Node-safe SDK: `dist/pgp-node.mjs`
+  - Includes ingestion-only functions for server runtimes (no `window`, `document`, or `localforage`).
+
+Cloud Run style import entrypoint:
+
+```javascript
+import {
+  fetchAvailableDataTypes,
+  allUsersMetaDataByType_fast,
+  fetchProfile,
+  load23andMeFile
+} from "./cloud_sdk.mjs";
+```
 
 ## Run
 
