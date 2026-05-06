@@ -27,6 +27,29 @@ const firstProfile = participants.length ? await sdk.fetchProfile(participants[0
 console.log({ participants, firstProfile });
 ```
 
+## ES6 from npm
+
+Use ES6 modules in two common ways:
+
+From npm (Node/Cloud Run)
+
+Browser SDK:
+
+```javascript
+import { fetch23andMeParticipants } from "personal_genomes_project_sdk";
+```
+
+Node-safe SDK:
+
+```javascript
+import {
+  fetchAvailableDataTypes,
+  allUsersMetaDataByType_fast,
+  fetchProfile,
+  load23andMeFile
+} from "personal_genomes_project_sdk/cloud_sdk.mjs";
+```
+
 
 [<img width="755" height="599" alt="image" src="https://github.com/user-attachments/assets/b67e2a78-9f2f-420f-bd8b-f17945fbcbba" />](https://lorenasandoval88.github.io/personal_genomes_project_sdk/)
 
@@ -199,6 +222,17 @@ import {
   fetchProfile,
   load23andMeFile
 } from "./cloud_sdk.mjs";
+```
+
+Package subpath import (after installing from npm):
+
+```javascript
+import {
+  fetchAvailableDataTypes,
+  allUsersMetaDataByType_fast,
+  fetchProfile,
+  load23andMeFile
+} from "personal_genomes_project_sdk/cloud_sdk.mjs";
 ```
 
 ## Run

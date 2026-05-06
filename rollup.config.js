@@ -59,7 +59,7 @@ export default [
   {
     input: 'cloud_sdk.mjs',
     output: {
-      file: 'dist/pgp-node.mjs',
+      file: 'dist/cloud_sdk.mjs',
       format: 'es',
       sourcemap: true
     },
