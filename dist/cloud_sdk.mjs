@@ -1,3 +1,5 @@
+var self = globalThis;
+
 import require$$0 from 'stream';
 import require$$2 from 'events';
 import require$$0$1 from 'buffer';

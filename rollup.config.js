@@ -57,10 +57,11 @@ export default [
   },
   // Node-safe SDK module
   {
-    input: 'cloud_sdk.mjs',
+    input: 'cloudNodeEntry.js',
     output: {
       file: 'dist/cloud_sdk.mjs',
       format: 'es',
+      intro: 'var self = globalThis;',
       sourcemap: true
     },
     plugins: nodePlugins
